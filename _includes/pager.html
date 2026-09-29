@@ -1,0 +1,5 @@
+{%- comment -%} Требует nav-seq.html, выполненный ранее. {%- endcomment -%}
+<nav class="pager" aria-label="Переход по курсу">
+  <a class="pager-a prev" rel="prev" data-nav="prev" href="{{ nav_prev_url }}"><span class="pager-k">← назад</span><span class="pager-t">{{ nav_prev_label | escape }}</span></a>
+  <a class="pager-a next" rel="next" data-nav="next" href="{{ nav_next_url }}"><span class="pager-k">дальше →</span><span class="pager-t">{{ nav_next_label | escape }}</span></a>
+</nav>

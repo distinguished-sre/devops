@@ -1,0 +1,35 @@
+---
+layout: default
+---
+{%- assign total = 0 -%}
+{%- for t in site.data.course.topics -%}{%- assign total = total | plus: t.lessons.size -%}{%- endfor -%}
+<section class="welcome" aria-label="Приветствие">
+  <span class="welcome-title">✻ Курс DevOps</span>
+  <div class="welcome-body">
+    <div class="welcome-big" aria-hidden="true">✻</div>
+    <div>
+      <p class="welcome-h">Добро пожаловать на курс DevOps</p>
+      <p class="dim">{{ site.data.course.topics.size }} блоков · {{ total }} уроков · один сквозной проект от systemd до GitOps</p>
+      <p class="cwd"><span class="dim">cwd:</span> ~/devops-course</p>
+      <p class="hintline"><span class="acc">✻</span> Нажми <kbd>/</kbd>, чтобы найти урок, <kbd>←</kbd> <kbd>→</kbd> для перехода между уроками.</p>
+      <p><a class="btn primary" href="#map">Открыть карту курса</a> <span class="chip" data-overall hidden></span></p>
+    </div>
+  </div>
+</section>
+<section id="map" class="course-map" data-total="{{ total }}" aria-label="Карта курса">
+  <h2 class="map-h">Карта курса</h2>
+  <ol class="cards topics-grid">
+    {%- for t in site.data.course.topics -%}
+      <li><a class="card topic-card" data-topic="{{ t.n }}" data-of="{{ t.lessons.size }}" href="{{ '/' | append: t.dir | append: '/' | relative_url }}">
+        <span class="card-id">{{ t.n }}</span>
+        <span class="card-t">{{ t.title | escape }}</span>
+        <span class="card-s">{{ t.subtitle | escape }}</span>
+        <span class="card-m"><span>{{ t.lessons.size }} уроков · {{ t.time }}</span><span data-count-for="{{ t.n }}">0/{{ t.lessons.size }}</span></span>
+        <span class="bar" aria-hidden="true"><i></i></span>
+      </a></li>
+    {%- endfor -%}
+  </ol>
+</section>
+<div class="prose home-prose" data-prose>
+{{ content }}
+</div>

@@ -1,0 +1,29 @@
+{%- assign total = 0 -%}
+{%- for t in site.data.course.topics -%}{%- assign total = total | plus: t.lessons.size -%}{%- endfor -%}
+<aside class="sidebar" id="sidebar" aria-label="Карта курса">
+  <div class="search">
+    <label class="search-box" for="q"><span class="prompt" aria-hidden="true">&gt;</span>
+      <input id="q" type="search" placeholder="найти урок…" autocomplete="off" spellcheck="false" aria-label="Поиск по урокам">
+      <kbd aria-hidden="true">/</kbd>
+    </label>
+  </div>
+  <nav class="course-nav" data-total="{{ total }}">
+    <a class="nav-home{% if page.url == '/' %} current{% endif %}" href="{{ '/' | relative_url }}">✻ Карта курса</a>
+    {%- for t in site.data.course.topics -%}
+      {%- capture tpath %}/{{ t.dir }}/{% endcapture -%}
+      {%- assign is_cur = false -%}
+      {%- if page.topic == t.n -%}{%- assign is_cur = true -%}{%- endif -%}
+      <details class="nav-topic" data-topic="{{ t.n }}"{% if is_cur %} open data-cur="1"{% endif %}>
+        <summary><span class="tn">{{ t.n }}</span><span class="tt">{{ t.title | escape }}</span><span class="tc" data-count-for="{{ t.n }}" data-of="{{ t.lessons.size }}">0/{{ t.lessons.size }}</span></summary>
+        <ul>
+          <li><a class="nav-overview{% if page.layout == 'topic' and is_cur %} current{% endif %}" href="{{ tpath | append: 'index.html' | relative_url }}">Обзор темы</a></li>
+          {%- for l in t.lessons -%}
+            {%- capture lpath %}/{{ t.dir }}/{{ l.slug }}.html{% endcapture -%}
+            <li><a class="nav-lesson{% if page.layout == 'lesson' and page.lesson == l.id %} current{% endif %}" data-id="{{ l.id }}" data-topic="{{ t.n }}" href="{{ lpath | relative_url }}"><span class="mk" aria-hidden="true"></span><span class="nid">{{ l.id }}</span><span class="nt">{{ l.title | escape }}</span></a></li>
+          {%- endfor -%}
+        </ul>
+      </details>
+    {%- endfor -%}
+    <p class="nav-empty" hidden>Ничего не найдено</p>
+  </nav>
+</aside>

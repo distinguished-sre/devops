@@ -1,0 +1,34 @@
+---
+layout: default
+---
+{%- assign cur_topic = nil -%}
+{%- for t in site.data.course.topics -%}{%- if t.n == page.topic -%}{%- assign cur_topic = t -%}{%- endif -%}{%- endfor -%}
+{%- include nav-seq.html key=page.lesson -%}
+<article class="lesson" data-lesson="{{ page.lesson }}" data-topic="{{ page.topic }}">
+  <header class="page-head">
+    <p class="kicker"><span class="acc">✻</span> Урок {{ page.lesson }} · Тема {{ page.topic }}{% if cur_topic %}: <a href="{{ '/' | append: cur_topic.dir | append: '/' | relative_url }}">{{ cur_topic.title | escape }}</a>{% endif %}</p>
+    <h1>{{ page.title | escape }}</h1>
+    <p class="meta">
+      {% if page.time %}<span class="chip">⏱ {{ page.time }}</span>{% endif %}
+      <button type="button" class="btn done-btn" data-done-btn aria-pressed="false">Отметить урок пройденным</button>
+    </p>
+  </header>
+  <div class="lesson-grid">
+    <div class="prose lesson-body" data-prose>
+      <details class="toc toc-inline" hidden><summary>Содержание урока</summary><ol data-toc></ol></details>
+      {{ content }}
+    </div>
+    <aside class="toc toc-side" aria-label="Содержание урока" hidden>
+      <p class="toc-h">на этой странице</p>
+      <ol data-toc></ol>
+    </aside>
+  </div>
+  {% include pager.html %}
+  <div class="statusline" role="status" aria-label="Строка состояния">
+    <span class="sl-seg sl-topic">тема {{ page.topic }}</span>
+    <span class="sl-seg">урок {{ page.lesson }}</span>
+    {% if page.time %}<span class="sl-seg">{{ page.time }}</span>{% endif %}
+    <span class="sl-seg sl-prog"><span data-sl-bar class="bar" aria-hidden="true"></span> <span data-sl-text>курс 0/0</span></span>
+    <span class="sl-seg sl-hint">← → уроки</span>
+  </div>
+</article>

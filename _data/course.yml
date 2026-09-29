@@ -1,0 +1,390 @@
+# _data/course.yml: единственный источник порядка уроков. prev/next вычисляет layout.
+topics:
+  - n: 1
+    dir: 01-linux
+    title: "Linux, Bash и systemd"
+    subtitle: "Сервер, права, процессы, скрипты: запускаем «Заметки» как сервис"
+    time: "16.5 ч"
+    lessons:
+      - id: "1.1"
+        slug: 01-first-server-shell
+        title: "Первый сервер: терминал, файловая система, справка"
+        time: "2 ч"
+      - id: "1.2"
+        slug: 02-text-pipes
+        title: "Текст, потоки и конвейеры: grep, sed, awk"
+        time: "2 ч"
+      - id: "1.3"
+        slug: 03-users-permissions
+        title: "Пользователи, права и sudo"
+        time: "2 ч"
+      - id: "1.4"
+        slug: 04-processes-signals
+        title: "Процессы и сигналы"
+        time: "2 ч"
+      - id: "1.5"
+        slug: 05-disk-memory-cpu
+        title: "Диск, память и процессор: где кончаются ресурсы"
+        time: "2 ч"
+      - id: "1.6"
+        slug: 06-bash-basics
+        title: "Основы bash и Make: переменные, условия, циклы"
+        time: "2 ч"
+      - id: "1.7"
+        slug: 07-bash-in-ops
+        title: "Bash в эксплуатации: надёжные скрипты, cron и логи"
+        time: "2 ч"
+      - id: "1.8"
+        slug: 08-systemd-editors
+        title: "systemd и редакторы: «Заметки» как сервис"
+        time: "2.5 ч"
+  - n: 2
+    dir: 02-network
+    title: "Сеть, HTTP, DNS, nginx и TLS"
+    subtitle: "Как запрос доходит до сервиса и как его безопасно опубликовать"
+    time: "16 ч"
+    lessons:
+      - id: "2.1"
+        slug: 01-addresses-routes
+        title: "Адреса и маршруты: IP, подсети, шлюз, NAT"
+        time: "2 ч"
+      - id: "2.2"
+        slug: 02-ports-tcp-ssh
+        title: "Порты, TCP и SSH: как программы находят друг друга"
+        time: "2 ч"
+      - id: "2.3"
+        slug: 03-dns
+        title: "DNS: как имя становится адресом"
+        time: "1.5 ч"
+      - id: "2.4"
+        slug: 04-http
+        title: "HTTP: запросы, заголовки, коды ответов, curl"
+        time: "2 ч"
+      - id: "2.5"
+        slug: 05-nginx
+        title: "nginx как reverse proxy для «Заметок»"
+        time: "2 ч"
+      - id: "2.6"
+        slug: 06-tls
+        title: "TLS и HTTPS: сертификаты и цепочка доверия"
+        time: "2 ч"
+      - id: "2.7"
+        slug: 07-firewall
+        title: "Файрвол и защита SSH"
+        time: "2 ч"
+      - id: "2.8"
+        slug: 08-request-path-troubleshooting
+        title: "Путь запроса и диагностика «сайт не открывается»"
+        time: "2.5 ч"
+  - n: 3
+    dir: 03-git-ci
+    title: "Git и CI"
+    subtitle: "История, командная работа и автоматические проверки"
+    time: "11.5 ч"
+    lessons:
+      - id: "3.1"
+        slug: 01-git-basics
+        title: "Git: коммиты, история и ветки"
+        time: "2 ч"
+      - id: "3.2"
+        slug: 02-remotes-workflow
+        title: "Удалённые репозитории, rebase, конфликты и Pull Request"
+        time: "2 ч"
+      - id: "3.3"
+        slug: 03-actions-ci
+        title: "CI в GitHub Actions: проверяем каждый Pull Request"
+        time: "2 ч"
+      - id: "3.4"
+        slug: 04-quality-security-ci
+        title: "Качество и безопасность в CI: сканеры, секреты, OIDC"
+        time: "2 ч"
+      - id: "3.5"
+        slug: 05-release-flow
+        title: "Релизы: semver, теги и GitHub Releases"
+        time: "1.5 ч"
+      - id: "3.6"
+        slug: 06-gitlab-ci-jenkins
+        title: "GitLab CI и Jenkins: тот же конвейер на других платформах"
+        time: "2 ч"
+  - n: 4
+    dir: 04-docker
+    title: "Docker и Compose"
+    subtitle: "Упаковываем «Заметки» вместе с PostgreSQL и nginx в контейнеры"
+    time: "17.5 ч"
+    lessons:
+      - id: "4.1"
+        slug: 01-containers-idea
+        title: "Контейнеры: процесс с изоляцией, а не виртуалка"
+        time: "2 ч"
+      - id: "4.2"
+        slug: 02-dockerfile
+        title: "Dockerfile: собираем образ «Заметок»"
+        time: "2 ч"
+      - id: "4.3"
+        slug: 03-storage-networks
+        title: "Тома и сети Docker"
+        time: "1.5 ч"
+      - id: "4.4"
+        slug: 04-sql-postgres-basics
+        title: "SQL и PostgreSQL: запросы, индексы, EXPLAIN"
+        time: "2 ч"
+      - id: "4.5"
+        slug: 05-compose-postgres
+        title: "Compose: «Заметки» и PostgreSQL"
+        time: "2.5 ч"
+      - id: "4.6"
+        slug: 06-compose-nginx-tls
+        title: "Compose: nginx и TLS перед «Заметками»"
+        time: "2 ч"
+      - id: "4.7"
+        slug: 07-images-registry
+        title: "Образы: multi-stage, теги и реестр ghcr.io"
+        time: "2 ч"
+      - id: "4.8"
+        slug: 08-image-security
+        title: "Безопасность образов: Trivy, Hadolint, SBOM"
+        time: "2 ч"
+      - id: "4.9"
+        slug: 09-docker-troubleshooting
+        title: "Отладка контейнеров и уборка диска"
+        time: "1.5 ч"
+  - n: 5
+    dir: 05-kubernetes
+    title: "Kubernetes и Helm"
+    subtitle: "Запускаем «Заметки» в кластере и обновляем без простоя"
+    time: "25.5 ч"
+    lessons:
+      - id: "5.1"
+        slug: 01-why-k8s-cluster
+        title: "Зачем Kubernetes: архитектура и свой кластер kind"
+        time: "2 ч"
+      - id: "5.2"
+        slug: 02-pods-deployments
+        title: "Поды и Deployment: запускаем «Заметки»"
+        time: "2.5 ч"
+      - id: "5.3"
+        slug: 03-services-dns
+        title: "Service и DNS кластера"
+        time: "1.5 ч"
+      - id: "5.4"
+        slug: 04-ingress-gateway
+        title: "Вход в кластер: Ingress и Gateway API"
+        time: "2.5 ч"
+      - id: "5.5"
+        slug: 05-storage-statefulset-postgres
+        title: "Хранилище и StatefulSet: PostgreSQL в кластере"
+        time: "2 ч"
+      - id: "5.6"
+        slug: 06-config-secrets
+        title: "ConfigMap и Secret"
+        time: "1.5 ч"
+      - id: "5.7"
+        slug: 07-probes-resources-rollouts
+        title: "Пробы, ресурсы и обновление без простоя"
+        time: "2.5 ч"
+      - id: "5.8"
+        slug: 08-jobs-cronjob-daemonset
+        title: "Job, CronJob и DaemonSet"
+        time: "1.5 ч"
+      - id: "5.9"
+        slug: 09-helm
+        title: "Helm: упаковываем «Заметки» в чарт"
+        time: "2.5 ч"
+      - id: "5.10"
+        slug: 10-kustomize
+        title: "Kustomize: окружения без шаблонов"
+        time: "1.5 ч"
+      - id: "5.11"
+        slug: 11-scaling-hpa
+        title: "Масштабирование: HPA и metrics-server"
+        time: "1.5 ч"
+      - id: "5.12"
+        slug: 12-k8s-security
+        title: "Безопасность кластера: RBAC, NetworkPolicy, PSS"
+        time: "2 ч"
+      - id: "5.13"
+        slug: 13-k8s-troubleshooting
+        title: "Диагностика Kubernetes: разбор поломок"
+        time: "2 ч"
+  - n: 6
+    dir: 06-cloud
+    title: "Облако"
+    subtitle: "«Заметки» на ВМ в Yandex Cloud: сеть, диски, домен, Managed-сервисы"
+    time: "9 ч"
+    lessons:
+      - id: "6.1"
+        slug: 01-cloud-models-aws-mapping
+        title: "Облако: модели, аккаунт, деньги и соответствие AWS"
+        time: "1.5 ч"
+      - id: "6.2"
+        slug: 02-vm-network-storage
+        title: "ВМ, сеть и диски в облаке"
+        time: "2 ч"
+      - id: "6.3"
+        slug: 03-deploy-notes-vm
+        title: "Деплой «Заметок» на ВМ: домен, HTTPS, обновления по тегу"
+        time: "2 ч"
+      - id: "6.4"
+        slug: 04-managed-services
+        title: "Managed-сервисы: PostgreSQL, Kubernetes, балансировщик"
+        time: "2 ч"
+      - id: "6.5"
+        slug: 05-cloud-ops-cost
+        title: "Эксплуатация в облаке: бэкапы, стоимость, уборка"
+        time: "1.5 ч"
+  - n: 7
+    dir: 07-iac
+    title: "IaC: Terraform и Ansible"
+    subtitle: "Инфраструктура и настройка серверов описаны кодом"
+    time: "13.5 ч"
+    lessons:
+      - id: "7.1"
+        slug: 01-iac-terraform-basics
+        title: "IaC и Terraform: ресурс, план, состояние"
+        time: "2 ч"
+      - id: "7.2"
+        slug: 02-terraform-vm-variables
+        title: "Terraform: переменные, ВМ и outputs"
+        time: "2 ч"
+      - id: "7.3"
+        slug: 03-terraform-state-modules
+        title: "Terraform: remote state, модули, окружения"
+        time: "2 ч"
+      - id: "7.4"
+        slug: 04-ansible-basics
+        title: "Ansible: инвентарь, модули, ad-hoc"
+        time: "1.5 ч"
+      - id: "7.5"
+        slug: 05-ansible-playbooks
+        title: "Ansible: плейбуки, handlers и Jinja2"
+        time: "2 ч"
+      - id: "7.6"
+        slug: 06-ansible-roles
+        title: "Ansible: роли и деплой «Заметок» одним запуском"
+        time: "2 ч"
+      - id: "7.7"
+        slug: 07-terraform-ansible-drift
+        title: "Terraform + Ansible: конвейер с нуля, drift"
+        time: "2 ч"
+  - n: 8
+    dir: 08-observability
+    title: "Наблюдаемость"
+    subtitle: "Метрики, алерты, логи, трейсы, service mesh и цели надёжности"
+    time: "21.5 ч"
+    lessons:
+      - id: "8.1"
+        slug: 01-observability-slo
+        title: "Наблюдаемость: три сигнала, SLI и SLO"
+        time: "1.5 ч"
+      - id: "8.2"
+        slug: 02-prometheus-basics
+        title: "Prometheus: сбор метрик и /metrics в «Заметках»"
+        time: "2 ч"
+      - id: "8.3"
+        slug: 03-promql
+        title: "PromQL: rate, агрегации, квантили"
+        time: "2 ч"
+      - id: "8.4"
+        slug: 04-blackbox-exporters
+        title: "Проверки снаружи: blackbox и exporters"
+        time: "1.5 ч"
+      - id: "8.5"
+        slug: 05-alertmanager
+        title: "Алерты и Alertmanager: правила, маршрутизация, runbook"
+        time: "2 ч"
+      - id: "8.6"
+        slug: 06-grafana-dashboards
+        title: "Grafana: дашборды как код"
+        time: "2 ч"
+      - id: "8.7"
+        slug: 07-logs-loki-alloy
+        title: "Логи: JSON, Loki и Grafana Alloy"
+        time: "2 ч"
+      - id: "8.8"
+        slug: 08-tracing
+        title: "Трейсинг: OpenTelemetry и Tempo"
+        time: "2 ч"
+      - id: "8.9"
+        slug: 09-k8s-monitoring
+        title: "Мониторинг в Kubernetes: kube-prometheus-stack"
+        time: "2 ч"
+      - id: "8.10"
+        slug: 10-service-mesh-istio
+        title: "Service mesh: Istio ambient"
+        time: "2.5 ч"
+      - id: "8.11"
+        slug: 11-reliability-patterns-burn-rate
+        title: "Надёжность: retry, circuit breaker и burn-rate алерты"
+        time: "2 ч"
+  - n: 9
+    dir: 09-secrets-gitops
+    title: "Секреты и GitOps"
+    subtitle: "Vault, Flux, сертификаты, операторы и безопасные релизы"
+    time: "14.5 ч"
+    lessons:
+      - id: "9.1"
+        slug: 01-secrets-problem-vault
+        title: "Проблема секретов и HashiCorp Vault"
+        time: "2 ч"
+      - id: "9.2"
+        slug: 02-vault-k8s-eso
+        title: "Секреты в Kubernetes: Vault и External Secrets Operator"
+        time: "2 ч"
+      - id: "9.3"
+        slug: 03-gitops-flux
+        title: "GitOps: Flux разворачивает «Заметки» из git"
+        time: "2.5 ч"
+      - id: "9.4"
+        slug: 04-cert-manager-tls
+        title: "cert-manager: TLS-сертификаты автоматически"
+        time: "2 ч"
+      - id: "9.5"
+        slug: 05-cnpg
+        title: "CloudNativePG: PostgreSQL-оператор"
+        time: "2 ч"
+      - id: "9.6"
+        slug: 06-progressive-delivery
+        title: "Canary и откат по метрикам: Argo Rollouts"
+        time: "2 ч"
+      - id: "9.7"
+        slug: 07-platform-review
+        title: "Платформа целиком: разбор и слабые места"
+        time: "2 ч"
+  - n: 10
+    dir: 10-capstone
+    title: "Итоговый практикум"
+    subtitle: "Дежурство, разбор инцидентов, восстановление и подготовка к собеседованию"
+    time: "19 ч"
+    lessons:
+      - id: "10.1"
+        slug: 01-oncall-drill
+        title: "On-call: ломаем «Заметки» и чиним по алертам"
+        time: "3 ч"
+      - id: "10.2"
+        slug: 02-postmortem-runbook
+        title: "Постмортем без поиска виноватых и хорошие runbook"
+        time: "2 ч"
+      - id: "10.3"
+        slug: 03-backup-dr-capacity
+        title: "Бэкапы, восстановление и ёмкость"
+        time: "2.5 ч"
+      - id: "10.4"
+        slug: 04-distributed-building-blocks
+        title: "Кирпичики распределённых систем"
+        time: "2 ч"
+      - id: "10.5"
+        slug: 05-security-review
+        title: "Ревью безопасности и релизного процесса"
+        time: "2.5 ч"
+      - id: "10.6"
+        slug: 06-portfolio-repo
+        title: "Портфолио-репозиторий"
+        time: "2.5 ч"
+      - id: "10.7"
+        slug: 07-mock-interview-junior
+        title: "Мок-собеседование: уровень junior"
+        time: "2 ч"
+      - id: "10.8"
+        slug: 08-mock-interview-middle
+        title: "Мок-собеседование: уровень middle и system design"
+        time: "2.5 ч"

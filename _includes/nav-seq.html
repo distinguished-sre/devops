@@ -1,0 +1,30 @@
+{%- comment -%}
+  Вычисляет соседей страницы в порядке курса: индекс темы, её уроки, индекс следующей темы.
+  Вход: include.key ("t3" для индекса темы 3, "1.3" для урока). Выход (глобальные): nav_prev_url/label, nav_next_url/label.
+{%- endcomment -%}
+{%- capture nav_seq -%}
+{%- for t in site.data.course.topics -%}t{{ t.n }}~~{{ t.dir }}/index.html~~Тема {{ t.n }}. {{ t.title }}@@{%- for l in t.lessons -%}{{ l.id }}~~{{ t.dir }}/{{ l.slug }}.html~~Урок {{ l.id }}. {{ l.title }}@@{%- endfor -%}{%- endfor -%}
+{%- endcapture -%}
+{%- assign nav_entries = nav_seq | split: '@@' -%}
+{%- assign nav_prev = '' -%}{%- assign nav_next = '' -%}{%- assign nav_cur_prev = '' -%}{%- assign nav_take = false -%}
+{%- for e in nav_entries -%}
+  {%- if e == '' -%}{%- continue -%}{%- endif -%}
+  {%- if nav_take -%}{%- assign nav_next = e -%}{%- assign nav_take = false -%}{%- endif -%}
+  {%- assign f = e | split: '~~' -%}
+  {%- if f[0] == include.key -%}{%- assign nav_cur_prev = nav_prev -%}{%- assign nav_take = true -%}{%- endif -%}
+  {%- assign nav_prev = e -%}
+{%- endfor -%}
+{%- if nav_cur_prev == '' -%}
+  {%- assign nav_prev_url = '/' | relative_url -%}{%- assign nav_prev_label = 'Главная' -%}
+{%- else -%}
+  {%- assign f = nav_cur_prev | split: '~~' -%}
+  {%- capture nav_prev_path %}/{{ f[1] }}{% endcapture -%}
+  {%- assign nav_prev_url = nav_prev_path | relative_url -%}{%- assign nav_prev_label = f[2] -%}
+{%- endif -%}
+{%- if nav_next == '' -%}
+  {%- assign nav_next_url = '/' | relative_url -%}{%- assign nav_next_label = 'На главную: карта курса' -%}
+{%- else -%}
+  {%- assign f = nav_next | split: '~~' -%}
+  {%- capture nav_next_path %}/{{ f[1] }}{% endcapture -%}
+  {%- assign nav_next_url = nav_next_path | relative_url -%}{%- assign nav_next_label = f[2] -%}
+{%- endif -%}

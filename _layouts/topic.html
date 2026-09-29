@@ -1,0 +1,34 @@
+---
+layout: default
+---
+{%- assign cur_topic = nil -%}
+{%- for t in site.data.course.topics -%}{%- if t.n == page.topic -%}{%- assign cur_topic = t -%}{%- endif -%}{%- endfor -%}
+{%- capture topic_key %}t{{ page.topic }}{% endcapture -%}
+{%- include nav-seq.html key=topic_key -%}
+<article class="topic" data-topic="{{ page.topic }}">
+  <header class="page-head">
+    <p class="kicker"><span class="acc">✻</span> Тема {{ page.topic }} из {{ site.data.course.topics.size }}</p>
+    <h1>{{ page.title | escape }}</h1>
+    {% if cur_topic.subtitle %}<p class="lead">{{ cur_topic.subtitle | escape }}</p>{% endif %}
+    <p class="meta">
+      {% if page.time %}<span class="chip">⏱ {{ page.time }}</span>{% endif %}
+      {% if cur_topic %}<span class="chip">{{ cur_topic.lessons.size }} уроков</span>{% endif %}
+      <span class="chip" data-topic-progress="{{ page.topic }}" data-of="{{ cur_topic.lessons.size }}">0/{{ cur_topic.lessons.size }} пройдено</span>
+    </p>
+  </header>
+  <div class="prose" data-prose>{{ content }}</div>
+  {% if cur_topic %}
+  <h2 class="cards-h">Уроки темы</h2>
+  <ol class="cards">
+    {%- for l in cur_topic.lessons -%}
+      {%- capture lpath %}/{{ cur_topic.dir }}/{{ l.slug }}.html{% endcapture -%}
+      <li><a class="card lesson-card" data-id="{{ l.id }}" href="{{ lpath | relative_url }}">
+        <span class="card-id"><span class="mk" aria-hidden="true"></span>{{ l.id }}</span>
+        <span class="card-t">{{ l.title | escape }}</span>
+        <span class="card-m">{{ l.time }}</span>
+      </a></li>
+    {%- endfor -%}
+  </ol>
+  {% endif %}
+  {% include pager.html %}
+</article>

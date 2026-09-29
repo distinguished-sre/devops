@@ -1,18 +1,46 @@
-theme: jekyll-theme-cayman
-logo: /devops-thumb.png
+# Сайт курса: GitHub Pages проекта https://distinguished-sre.github.io/devops/
 title: Курс обучения DevOps от Евгения Быкова
-description: Девять тем от Linux до Kubernetes и GitOps. Теория простым языком, вопросы с ответами и практика на сквозном проекте
+description: Десять блоков от Linux до Kubernetes, GitOps и сквозного проекта. Теория простым языком, вопросы с ответами и практика
 email: jenyabykov322@yandex.ru
 github_username: distinguished-sre
-show_downloads: false
 lang: ru
+url: "https://distinguished-sre.github.io"
+baseurl: "/devops"
+repo_url: "https://github.com/distinguished-sre/devops"
+logo: /assets/favicon.svg
 
-# Служебные файлы, которые не должны попадать на сайт.
-# CLAUDE.md — инструкция для Claude Code, а не страница курса; вдобавок
-# в ней намеренно приводятся Liquid-теги как текст, на чём падала сборка.
-# Остальное — стандартный список Jekyll: указав exclude, мы заменяем его целиком.
+# Тему cayman убрали: оформление своё (_layouts, assets/css/style.scss).
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    default_lang: text
+    guess_lang: false
+
+# Все плагины из белого списка GitHub Pages.
+plugins:
+  - jekyll-relative-links
+  - jekyll-redirect-from
+  - jekyll-seo-tag
+  - jekyll-sitemap
+
+# Ссылки [текст](03-file.md) в уроках превращаются в .html
+relative_links:
+  enabled: true
+  collections: false
+
+# Указав exclude, мы заменяем стандартный список Jekyll целиком, поэтому
+# служебные пути перечислены. CLAUDE.md намеренно содержит Liquid-теги как
+# текст и не должен попадать на сайт. project/ и _samples: это код, а не страницы.
+# versions.yml не исключаем: без front matter Jekyll его не публикует.
 exclude:
   - CLAUDE.md
+  - project/
+  - _samples/
+  - "*.sh"
+  - Makefile
   - Gemfile
   - Gemfile.lock
   - gemfiles
@@ -23,3 +51,33 @@ exclude:
   - vendor/ruby/
   - .sass-cache
   - .jekyll-cache
+
+# Уроки получают layout lesson по умолчанию (scope по префиксу пути),
+# index.md тем задают layout: topic явно, README.md: layout home.
+defaults:
+  - scope: {path: "01-linux"}
+    values: {layout: lesson}
+  - scope: {path: "02-network"}
+    values: {layout: lesson}
+  - scope: {path: "03-git-ci"}
+    values: {layout: lesson}
+  - scope: {path: "04-docker"}
+    values: {layout: lesson}
+  - scope: {path: "05-kubernetes"}
+    values: {layout: lesson}
+  - scope: {path: "06-cloud"}
+    values: {layout: lesson}
+  - scope: {path: "07-iac"}
+    values: {layout: lesson}
+  - scope: {path: "08-observability"}
+    values: {layout: lesson}
+  - scope: {path: "09-secrets-gitops"}
+    values: {layout: lesson}
+  - scope: {path: "10-capstone"}
+    values: {layout: lesson}
+  - scope: {path: "tasks"}
+    values: {layout: default}
+  - scope: {path: "resources.md"}
+    values: {layout: default}
+  - scope: {path: "README.md"}
+    values: {layout: home}

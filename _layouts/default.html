@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="{{ site.lang | default: 'ru' }}" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <script>
+    /* Тема до отрисовки, чтобы не мигало. Хранилище может быть недоступно. */
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem('theme'); } catch (e) {}
+      if (t !== 'light' && t !== 'dark') {
+        t = (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+      }
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  {% seo %}
+  <link rel="icon" type="image/svg+xml" href="{{ '/assets/favicon.svg' | relative_url }}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap&subset=cyrillic" rel="stylesheet">
+  <link rel="stylesheet" href="{{ '/assets/css/style.css' | relative_url }}">
+  <script src="{{ '/assets/js/site.js' | relative_url }}" defer></script>
+</head>
+<body class="layout-{{ page.layout }}">
+  <a class="skip" href="#content">К содержимому</a>
+  <header class="topbar">
+    <button class="icon-btn menu-btn" type="button" aria-label="Открыть карту курса" aria-controls="sidebar" aria-expanded="false"><span aria-hidden="true">☰</span></button>
+    <a class="brand" href="{{ '/' | relative_url }}"><span class="brand-mark" aria-hidden="true">✻</span><span class="brand-name">devops<span class="dim">-курс</span></span></a>
+    <span class="topbar-sp"></span>
+    <span class="chip progress-chip" title="Пройдено уроков" hidden><span data-progress-text></span></span>
+    <button class="icon-btn theme-btn" type="button" aria-label="Переключить тему"><span aria-hidden="true" class="theme-ico"></span></button>
+  </header>
+  <div class="shell">
+    {% include sidebar.html %}
+    <div class="backdrop" hidden></div>
+    <main id="content" class="main" tabindex="-1">
+      {{ content }}
+      <footer class="footer">
+        <span>✻ {{ site.title | escape }}</span>
+        <span class="dim">Автор: Евгений Быков · <a href="{{ site.repo_url }}">исходники на GitHub</a> · клавиши ← → между уроками, / поиск</span>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
