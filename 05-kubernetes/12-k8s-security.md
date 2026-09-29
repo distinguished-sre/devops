@@ -41,7 +41,7 @@ time: "2 ч"
 
 > **Проверь понимание:** у SA есть RoleBinding на роль `pod-reader` в namespace `dev`. Может ли он читать поды в namespace `prod`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. RoleBinding действует только в своём namespace. Чтобы дать права в `prod`, нужен RoleBinding там (можно на ту же ClusterRole или Role с тем же содержимым). ClusterRoleBinding дал бы права везде.
@@ -68,7 +68,7 @@ time: "2 ч"
 
 > **Проверь понимание:** ты включил `enforce: restricted` на namespace с работающим Postgres от root. Что произойдёт с подом сразу и что при его пересоздании?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Сразу ничего: работающий под остаётся. При пересоздании (рестарт StatefulSet, эвакуация узла) под не пройдёт допуск: ошибка `violates PodSecurity "restricted:latest"`, а StatefulSet будет пытаться создать под снова. Именно поэтому сначала `warn`.
@@ -89,7 +89,7 @@ time: "2 ч"
 
 > **Проверь понимание:** зачем `emptyDir` в `/tmp`, если файловая система только для чтения?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Многие программы пишут временные файлы (Python, кэши, сокеты). На read-only корне запись падает с `Read-only file system`. `emptyDir` это отдельный записываемый том, живущий, пока жив под: ограничение остаётся на всём остальном образе.
@@ -112,7 +112,7 @@ time: "2 ч"
 
 > **Проверь понимание:** под выбран политикой `Ingress` с разрешением от подов `app=notes`. Может ли под с меткой `app=other` из того же namespace достучаться до него?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет: как только под выбран Ingress-политикой, разрешено только перечисленное. Всё остальное отбрасывается (пакеты молча пропадают, клиент видит таймаут, а не отказ).
@@ -132,7 +132,7 @@ time: "2 ч"
 1. Сможет ли новый SA сразу после создания читать поды?
 2. После выдачи роли `get pods`, сможет ли он читать секреты и удалять поды?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 1. Нет, у нового SA нет прав кроме базовых (discovery). 2. Читать поды сможет, секреты и удаление нет: RBAC разрешает только перечисленное.
@@ -193,7 +193,7 @@ no
 
 **Предскажи:** ты включаешь `warn: restricted` на `notes` с работающим релизом. Что напечатает kubectl и что случится с подами?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 kubectl напечатает предупреждения `would violate PodSecurity "restricted:latest"` со списком нарушенных полей для каждого пода. Поды продолжат работать: `warn` ничего не блокирует.
@@ -246,7 +246,7 @@ pod/bad created (server dry run)
 
 **Предскажи:** в namespace `notes` применена политика `default-deny` (ingress и egress для всех подов). Ответит ли приложение на `curl` из тестового пода? Разрешит ли под имя `db.notes.svc`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет на оба вопроса. Входящий трафик блокирован, а исходящий (включая DNS на порт 53) тоже: `curl` завершится по таймауту, а имя не разрешится (`Could not resolve host`).
@@ -352,7 +352,7 @@ command terminated with exit code 28
 
 **Предскажи:** после включения `enforce: restricted` и обновления чарта под будет создан без `/tmp`-тома. Что упадёт: сам под или запрос?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Под создастся и стартует, а приложение упадёт при первой попытке записи во временный файл: `Read-only file system`. Ошибка проявится в рантайме, а не при допуске: PSA не проверяет, куда пишет процесс.
@@ -548,7 +548,7 @@ kubectl auth can-i <глагол> <ресурс> --as=<субъект> -n notes
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор всех сценариев</summary>
 
 1. **NetworkPolicy блокирует DNS.** Симптом: `Temporary failure in name resolution` или `could not translate host name "db"`. Проверка: `kubectl -n notes get networkpolicy` показывает `default-deny` без `allow-dns`; из тестового пода `nslookup` виснет. Исправление: вернуть `allow-dns` (`kubectl apply -f k8s/base/70-netpol-default-deny.yaml`). Урок: egress deny без DNS ломает любое обращение по имени.

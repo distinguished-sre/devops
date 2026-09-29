@@ -44,7 +44,7 @@ time: "2 ч"
 
 > **Проверь понимание:** почему `status` должен быть числом, а не строкой `"200"`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Сравнение `status >= 500` в запросе работает только с числом. Со строкой придётся писать регулярку, и первый же `"5xx"` вместо `500` сломает фильтр.
@@ -68,7 +68,7 @@ Grafana Loki хранит логи иначе, чем Elasticsearch. Elasticsear
 
 > **Проверь понимание:** сервис пишет 1000 запросов в минуту на 500 разных путей. Сколько потоков получится, если сделать `path` лейблом, а `level` оставить?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 До 500 путей умножить на число уровней, то есть 1000-1500 потоков вместо 3. Каждый маленький и живёт недолго. Правильно: два лейбла `service` и `level`, путь ищется фильтром по тексту.
@@ -90,7 +90,7 @@ discovery.docker  ->  discovery.relabel  ->  loki.source.docker  ->  loki.proces
 
 > **Проверь понимание:** контейнер удалили. Где искать его логи, если агента не было?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нигде: `docker logs` работает только пока контейнер существует. Поэтому агент собирает логи заранее, а не после инцидента.
@@ -118,7 +118,7 @@ sum by (level) (count_over_time({service="notes"}[1m]))
 
 > **Проверь понимание:** зачем `| json` перед `status >= 500`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Без `| json` строка остаётся просто текстом и полей `status` нет. `| json` разбирает JSON и превращает ключи в поля, по которым можно сравнивать.
@@ -146,7 +146,7 @@ docker compose stop cadvisor blackbox alertmanager
 
 **Предскажи:** сколько строк появится в `docker logs` после одного `curl /notes`, если служебные пути `/healthz`, `/readyz`, `/metrics` в лог не пишутся? Какого типа будет `status`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Одна строка `"msg":"request"`. `status` число (200 без кавычек), `dur_ms` тоже число.
@@ -237,7 +237,7 @@ docker logs notes 2>&1 | tail -n 2 | jq -c .
 
 **Предскажи:** сколько лейблов будет у логов сервиса `notes`, если мы назначаем `service` и `level`? Что произойдёт со строкой лога nginx (он пишет не JSON)?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Два своих лейбла (плюс служебный `service_name`, его Loki добавляет сам). Строка nginx получит только `service`: разбор JSON и лейбл `level` мы включаем лишь для сервиса `notes`.
@@ -410,7 +410,7 @@ ready
 
 **Предскажи:** запрос `{service="notes"} | json | status >= 500` после трёх `GET /notes` и одного `GET /error`: сколько строк вернёт?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Одну: запись `/error` со `status: 500`. Три запроса `/notes` отсеет фильтр по числу.
@@ -450,7 +450,7 @@ sum(rate({service="notes"} | json | status >= 500 [1m])) / sum(rate({service="no
 
 **Предскажи:** поднимется ли дашборд в Grafana после `git pull` на чистой машине без ручных кликов?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Да, если файл лежит в каталоге, который читает provisioning (урок 8.6), и `uid` источника `loki` совпадает с `uid` в `datasources/loki.yml`. Ручных кликов нет: дашборд это код.
@@ -553,7 +553,7 @@ curl -sG http://localhost:3100/loki/api/v1/series --data-urlencode 'match[]={ser
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор всех сценариев</summary>
 
 **1. `too many outstanding requests`.** Очередь запросов Loki переполнена: дашборд с многими панелями за большой период. Починка: уменьши диапазон и число панелей, в `loki.yml` подними `query_scheduler.max_outstanding_requests_per_tenant` и ограничь `limits_config.max_query_parallelism`.

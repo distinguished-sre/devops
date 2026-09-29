@@ -46,7 +46,7 @@ Overlay ссылается на base путём в `resources`. База нич�
 
 > **Проверь понимание:** чем `kubectl kustomize k8s/overlays/dev` отличается от `kubectl apply -k k8s/overlays/dev`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Первая команда только печатает итоговый YAML и не обращается к кластеру для изменений. Вторая собирает тот же YAML и отправляет его в API-сервер. Поэтому сначала всегда `kustomize` (или `diff -k`), потом `apply -k`.
@@ -65,7 +65,7 @@ JSON-патч (JSON 6902): список операций `add`, `replace`, `remo
 
 > **Проверь понимание:** тебе нужно поменять образ у одного из двух контейнеров в поде и одновременно удалить у Gateway один listener. Какой вид патча для чего?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Образ: стратегическое слияние (или встроенный трансформер `images:`), контейнер выбирается по `name`. Удаление listener: JSON-патч с `op: remove` и путём `/spec/listeners/1`, потому что слиянием элемент из списка не убрать.
@@ -105,7 +105,7 @@ JSON-патч (JSON 6902): список операций `add`, `replace`, `remo
 
 **Предскажи:** в base у Deployment `web` одна реплика и образ `nginx:1.30`. В overlay `prod` ты поставишь 3 реплики и образ `nginx:1.30-alpine`. Что напечатает `kubectl kustomize` для overlay: два Deployment или один? А файл `base/deployment.yaml` изменится?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Один Deployment с 3 репликами и новым образом. Файл базы не меняется: патч применяется только в памяти при сборке.
@@ -204,7 +204,7 @@ kubectl kustomize overlays/prod | grep -E 'replicas|image:'
 
 **Предскажи:** в `k8s/base/` лежат `00-namespace.yaml`, `30-envoyproxy.yaml`, `31-gateway.yaml`, `40-postgres.yaml`, `60-pg-backup-cronjob.yaml`. Файлы `10`, `20`, `32`, `50` уже не там: их заменил Helm-чарт. Что случится, если ты по привычке добавишь в `resources` и их?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Приложением владеет Helm-релиз `notes`. Повторное создание тех же Deployment, Service и HTTPRoute через `kubectl apply` даст конфликт владельцев, а после следующего `helm upgrade` две системы будут перетирать друг друга. В базу входит только то, чем не управляет Helm.
@@ -267,7 +267,7 @@ kind: StatefulSet
 
 **Предскажи:** dev патчит `postgres` до 50m CPU и 128Mi памяти, prod до 250m и 512Mi. Ты применишь только dev. Перезапустится ли под `postgres-0`, если у StatefulSet поменялся шаблон пода?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Да. Ресурсы лежат в `spec.template`, поэтому StatefulSet заменит под (порядок и тома сохранятся, данные остаются в PVC). Поэтому такие правки делаем осознанно и не в час пик.
@@ -414,7 +414,7 @@ kubectl kustomize ~/notes/k8s/overlays/dev > /dev/null
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **Сценарий 1. Цель патча не найдена.**

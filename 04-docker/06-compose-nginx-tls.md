@@ -30,7 +30,7 @@ time: "2 ч"
 
 > **Проверь понимание:** в `compose.yml` у `db` стоит `ports: ["5432:5432"]`, а ufw закрывает 5432. Доступна ли база из интернета?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Да, скорее всего доступна: правила Docker в цепочке DOCKER стоят раньше правил ufw. Правильно убрать `ports` у `db` совсем или написать `127.0.0.1:5432:5432`.
@@ -45,7 +45,7 @@ time: "2 ч"
 
 > **Проверь понимание:** почему `resolver 127.0.0.11` без переменной в `proxy_pass` не решает проблему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Статическое имя в `proxy_pass` разрешается при загрузке конфига, а `resolver` для него не используется. Динамическое разрешение включается только тогда, когда адрес задан через переменную.
@@ -58,7 +58,7 @@ time: "2 ч"
 
 > **Проверь понимание:** зачем `curl --resolve notes.lab:443:127.0.0.1` вместо правки `/etc/hosts`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Флаг подставляет адрес только для одной команды: имя `notes.lab` остаётся настоящим для TLS и заголовка `Host`, а систему править не нужно.
@@ -71,7 +71,7 @@ time: "2 ч"
 
 > **Проверь понимание:** ты добавил `max-size: 10m` в `compose.yml` и сделал `docker compose restart proxy`. Ротация включилась?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. `restart` не применяет новую конфигурацию, нужен `docker compose up -d`, который пересоздаст контейнер.
@@ -101,7 +101,7 @@ notes-notes-1   notes-notes "python app.py"        notes     5 minutes ago   Up 
 
 **Предскажи:** если в сертификате будет только `CN=notes.lab` без SAN, примет ли его `curl` с флагом `--cacert`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Современные версии OpenSSL и curl проверяют имя по SAN, поле CN игнорируется. Будет ошибка проверки имени.
@@ -173,7 +173,7 @@ notAfter=Sep 29 10:00:00 2027 GMT
 
 **Предскажи:** в конфиге будет `set $upstream http://notes:8080;` и `proxy_pass $upstream;`. Изменится ли URI запроса `/notes?x=1`, который получит приложение?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Не изменится. Если в `proxy_pass` нет части URI, nginx передаёт исходный URI целиком, в том числе и при использовании переменной.
@@ -253,7 +253,7 @@ nginx: configuration file /etc/nginx/nginx.conf test is successful
 
 **Предскажи:** после правки `docker compose ps` покажет для `notes` порт `8080/tcp` без стрелки `->`. Что это значит для запроса `curl http://127.0.0.1:8080/healthz` с хоста?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Запрос завершится ошибкой `Connection refused`: порт хоста 8080 больше никем не слушается. Приложение доступно только контейнерам в сети `notes-net`.
@@ -357,7 +357,7 @@ proxy     Up 14 seconds             0.0.0.0:80->80/tcp, [::]:80->80/tcp, 0.0.0.0
 
 **Предскажи:** какой код вернёт `curl -sI http://notes.lab/` и в каком заголовке будет адрес назначения?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Код `301 Moved Permanently`, адрес в `Location: https://notes.lab/`.
@@ -428,7 +428,7 @@ Protocol  : TLSv1.3
 
 **Предскажи:** ты пересоздаёшь `notes` командой `docker compose up -d --force-recreate notes`. Получит ли клиент 502 в ближайшие 10 секунд и почему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Возможен короткий 502 или ошибка, пока приложение стартует (секунды). Но после старта запросы пойдут на новый IP уже без перезапуска nginx: имя разрешается заново (кэш 10 секунд, затем новый запрос к DNS Docker).
@@ -522,7 +522,7 @@ docker exec notes-proxy-1 getent hosts notes
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **Сценарий 1. `host not found in upstream`.** В логе:

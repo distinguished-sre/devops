@@ -37,7 +37,7 @@ Helm рендерит шаблоны на твоей машине в обычн�
 
 > **Проверь понимание:** где Helm хранит историю релизов и что случится с откатом, если этот Secret удалить?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 В Secret с типом `helm.sh/release.v1` в namespace релиза, по одному на ревизию (`sh.helm.release.v1.notes.v1`, `...v2`). Если удалить их, сами Pod и Service останутся работать, но Helm забудет о релизе: `helm list` его не покажет, откатиться нельзя, а повторный `install` упрётся в существующие объекты.
@@ -60,7 +60,7 @@ Helm рендерит шаблоны на твоей машине в обычн�
 
 > **Проверь понимание:** чем `required` лучше, чем `default`, для значения `gateway.host`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `default` молча подставит выдуманное значение, и приложение уйдёт в прод с неправильным хостом. `required` остановит рендер с сообщением ещё до обращения к кластеру. Для значений, у которых нет разумного умолчания, нужен `required`.
@@ -104,7 +104,7 @@ Helm рендерит шаблоны на твоей машине в обычн�
 
 **Предскажи:** что покажет `sha256sum -c`, если архив скачался обрезанным?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `FAILED` и код возврата 1: сумма не совпадёт. Ставить такой файл нельзя.
@@ -147,7 +147,7 @@ v4.3.0
 
 **Предскажи:** что произойдёт с релизом, если ты не задашь `image.tag`, и что хочется от чарта в этом случае?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Разумное поведение: взять `appVersion` из `Chart.yaml` (0.4.1). Так тег образа по умолчанию совпадает с версией приложения, а `latest` не появляется нигде.
@@ -366,7 +366,7 @@ kind: HTTPRoute
 
 **Предскажи:** что скажет Helm, если запустить `helm install` при живых объектах Deployment `notes` из `kubectl apply`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Откажется: `invalid ownership metadata`. Helm не берёт под контроль чужие объекты без меток и аннотаций владения. Есть два пути: усыновить (добавить метки и аннотации руками) или удалить старые и поставить релиз. Мы выбираем второе: это учебный кластер, и короткий простой допустим. На проде так не делают, там усыновляют или ставят релиз под другим именем и переключают трафик.
@@ -439,7 +439,7 @@ replicaCount: 2
 
 **Предскажи:** если выкатить несуществующий тег образа без `--atomic`, что покажет `helm list`: `deployed` или `failed`? Что будет с трафиком?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Без `--wait` Helm считает установку успешной, как только API принял объекты: статус `deployed`. Новые Pod'ы будут в `ImagePullBackOff`, но благодаря `maxUnavailable: 0` и readiness-пробе старые продолжат обслуживать трафик. Это ещё одна причина писать `--atomic` или `--wait` в CI: иначе статус релиза лжёт.
@@ -497,7 +497,7 @@ REVISION  UPDATED                   STATUS      CHART        APP VERSION  DESCRI
 
 **Предскажи:** какие файлы остались в `k8s/base/` и почему `helm uninstall notes` не удалит Postgres?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Остались `00-namespace`, `30-envoyproxy`, `31-gateway`, `40-postgres`, `60-pg-backup-cronjob` (плюс `70-netpol...` появится позже). Postgres не входит в релиз: `helm uninstall` удаляет только объекты, которые Helm сам создал и записал в манифест релиза.
@@ -575,7 +575,7 @@ helm template notes helm/notes --debug | head -60   # --debug печатает �
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор всех сценариев</summary>
 
 1. `Error: INSTALLATION FAILED: cannot re-use a name that is still in use`: релиз `notes` уже существует (в том числе в статусе `failed`). Проверь `helm list -A --all`. Либо используй `helm upgrade --install`, либо удали неудачный релиз: `helm uninstall notes -n notes`.

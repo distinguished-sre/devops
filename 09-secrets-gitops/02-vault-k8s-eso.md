@@ -38,7 +38,7 @@ ESO это оператор (operator): контроллер, который с�
 
 > **Проверь понимание:** пароль сменили в Vault. Увидит ли уже работающий под новое значение из `envFrom`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Переменные окружения из `envFrom` читаются один раз при старте контейнера. ESO обновит Secret, но процесс в поде продолжит жить со старым значением до перезапуска пода. Поэтому после ротации нужен `kubectl rollout restart` или контроллер вроде Reloader, который перезапускает поды при изменении Secret.
@@ -58,7 +58,7 @@ ESO тоже нужно чем-то доказать Vault, кто он. Всп�
 
 > **Проверь понимание:** ты создал SA `notes` в namespace `default` и указал его в `ClusterSecretStore`. Роль в Vault привязана к SA `notes` в namespace `notes`. Что получишь?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Vault отклонит вход: `namespace not authorized`, ExternalSecret получит статус `SecretSyncedError`. Имя SA совпало, но «личность» это пара имя + namespace.
@@ -75,7 +75,7 @@ Vault отклонит вход: `namespace not authorized`, ExternalSecret по
 
 > **Проверь понимание:** что будет с Secret `notes-db`, если удалить `ExternalSecret notes-db` при `creationPolicy: Owner`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Secret удалится вместе с ним, поды при следующем создании упадут с `CreateContainerConfigError`. Поэтому удалять `ExternalSecret` на живом приложении нельзя, а в GitOps (тема 9.3) это делается осознанно.
@@ -111,7 +111,7 @@ notes-db   Opaque   2      6d
 
 **Предскажи:** сколько подов появится в namespace `external-secrets` и какие ресурсы (`kubectl api-resources`) с группой `external-secrets.io` добавятся?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Три пода: сам контроллер, `cert-controller` (управляет сертификатом вебхука) и `webhook` (проверяет ресурсы при создании). Появятся CRD `externalsecrets`, `secretstores`, `clustersecretstores` и другие.
@@ -167,7 +167,7 @@ externalsecrets.external-secrets.io
 
 **Предскажи:** какие три вещи в Vault должны существовать, чтобы вход прошёл? Подсказка: вспомни 9.1.
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Включённый метод `auth/kubernetes`, роль `notes`, привязанная к SA `notes` в namespace `notes`, и политика `notes-read` на роли. Всё это создал `scripts/seed-vault.sh`. Кроме Vault нужен сам SA `notes` в кластере.
@@ -255,7 +255,7 @@ vault-backend   6s    Valid    ReadWrite      True
 
 **Предскажи:** ты меняешь значение в Vault. Через сколько Secret обновится при `refreshInterval: 1m` и изменится ли значение в уже запущенном поде?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Secret обновится не позже чем через минуту. Переменная окружения в запущенном поде не изменится до его перезапуска (см. вопрос в теории). Если Secret смонтирован файлом (volume), файл обновится сам примерно за минуту, но приложение должно перечитать его.
@@ -339,7 +339,7 @@ second
 
 **Предскажи:** если применить `ExternalSecret notes-db`, пока ручной Secret с таким же именем существует, что скажет ESO? И почему нельзя просто взять новый пароль из Vault, не трогая PostgreSQL?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 ESO не сможет стать владельцем чужого Secret: статус `SecretSyncedError`, Secret не перезаписан. Поэтому ручной Secret сначала удаляют. Про PostgreSQL: пароль пользователя `notes` записан в самой БД при инициализации тома (5.5). Изменение Secret его не меняет, значит, пароль в БД надо привести в соответствие с Vault, иначе приложение получит `password authentication failed`.
@@ -512,7 +512,7 @@ kubectl -n vault get pods,endpoints vault
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **1. `permission denied` / `invalid role name "notes"`.** Сообщение вида `Code: 400. Errors: * invalid role name "notes"` говорит: роли нет или в `ClusterSecretStore` другое имя. Сверь `role` в хранилище с `vault list auth/kubernetes/role`. Если роли нет, запусти `scripts/seed-vault.sh`. Ответ `Code: 403 ... permission denied` уже после успешного входа означает, что политика роли не покрывает путь: проверь `vault policy read notes-read`, путь должен быть `secret/data/notes/*` (у kv-v2 в пути политики есть `data/`).

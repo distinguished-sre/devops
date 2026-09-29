@@ -359,7 +359,7 @@ li.checked .todo-text { color: var(--muted); text-decoration: line-through; text
 }
 .welcome-body { display: flex; gap: 32px; align-items: center; }
 .welcome-big { font-size: clamp(64px, 12vw, 120px); line-height: 1; color: var(--accent); flex: none; }
-.welcome-h { margin: 0 0 6px; font: 700 clamp(20px, 3.4vw, 28px)/1.25 var(--mono); }
+.welcome-h { margin: 0 0 6px; letter-spacing: 0; font: 700 clamp(20px, 3.4vw, 28px)/1.25 var(--mono); }
 .welcome p { margin: 0 0 10px; }
 .cwd { font: 14px var(--mono); }
 .hintline { font-size: 14.5px; }

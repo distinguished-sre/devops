@@ -1,10 +1,9 @@
 ---
+layout: page
 title: "Техническое задание для SRE"
 redirect_from:
   - /задание-sre.html
 ---
-
-# 🛡️ SRE Подготовительный план
 
 ### 3–4 дня до выхода на новую должность · Solo SRE · Greenfield Department
 
@@ -164,6 +163,7 @@ scrape_configs:
 1. Поднять стек: `docker compose up -d` → убедиться что все контейнеры `Up`
 2. Зайти в Prometheus UI (`:9090`) → Status → Targets: все должны быть `UP`
 3. Настрой Grafana Provisioning (datasource as code):
+
    ```yaml
    # grafana/provisioning/datasources/prometheus.yml
    apiVersion: 1
@@ -173,6 +173,7 @@ scrape_configs:
        url: http://prometheus:9090
        isDefault: true
    ```
+
 4. Импортируй дашборды: **Node Exporter Full (ID: 1860)**, **cAdvisor (ID: 14282)**
 5. Создай свой кастомный дашборд с 6 панелями:
    CPU%, Memory%, Disk I/O, Network In/Out, Container restarts, HTTP error rate (с demo-app)
@@ -186,12 +187,14 @@ scrape_configs:
 > ℹ️ `demo-app` генерирует `http_request_duration_seconds_bucket` и `http_requests_total` с лейблом `job="demo-app"`. Все запросы ниже работают прямо в Prometheus UI.
 
 **Шаг 1 — Проверь что метрики есть** (в Prometheus Expression Browser):
+
 ```promql
 # Должно вернуть данные:
 sum(rate(http_requests_total{job="demo-app"}[5m]))
 ```
 
 **Шаг 2 — Задокументируй SLO в YAML-формате:**
+
 ```yaml
 # ~/sre-bootstrap/monitoring/slo-definitions.yml
 slos:
@@ -213,6 +216,7 @@ slos:
 ```
 
 **Шаг 3 — Создай recording rules для burn rate** (они нужны ДО создания алертов в шаге 4):
+
 ```yaml
 # ~/sre-bootstrap/monitoring/prometheus/rules/slo_recording_rules.yml
 groups:
@@ -248,6 +252,7 @@ groups:
 ```
 
 **Шаг 4 — Алерты на основе recording rules** (multi-window, Google SRE Book):
+
 ```yaml
 # ~/sre-bootstrap/monitoring/prometheus/rules/slo_alerts.yml
 groups:
@@ -282,6 +287,7 @@ groups:
 ```
 
 **Шаг 5 — Error Budget Dashboard в Grafana** (4 панели):
+
 ```promql
 # Панель 1: Remaining Error Budget (%)
 (1 - job:http_error_ratio:rate1h / 0.001 * (1/720)) * 100
@@ -365,6 +371,7 @@ inhibit_rules:
 **Подзадачи:**
 1. Зарегистрируй бесплатный webhook на `https://webhook.site` — подставь URL в конфиг
 2. Протестируй через `amtool`:
+
    ```bash
    # Установка amtool
    docker run --rm --network monitoring_default \
@@ -373,6 +380,7 @@ inhibit_rules:
      alert add alertname=TestCritical severity=critical job=demo-app \
      --annotation summary="Test alert"
    ```
+
 3. Убедись что `inhibit_rules` работают: создай critical + warning алерт с одинаковым `job` лейблом — warning должен быть suppressed
 4. Напиши ещё 3 собственных inhibit правила для типичных сценариев
 
@@ -391,6 +399,7 @@ inhibit_rules:
    - `HighErrorRate`: `job:http_error_ratio:rate5m > 0.05` (требует recording rules из задания 1.2)
 
 4. Сохрани все дашборды как JSON для GitOps:
+
    ```bash
    # ✅ Исправленная версия — сохраняет каждый дашборд в отдельный файл
    mkdir -p ~/sre-bootstrap/monitoring/grafana/dashboards-export
@@ -489,6 +498,7 @@ volumes:
 **Практические подзадачи:**
 
 1. Напиши **Logstash pipeline** для парсинга Nginx access logs:
+
    ```ruby
    # logstash/pipeline/nginx.conf
    input {
@@ -527,6 +537,7 @@ volumes:
    ```
 
 2. Настрой **Index Lifecycle Policy (ILM)** через Kibana Dev Tools (Stack Management → ILM):
+
    ```json
    PUT _ilm/policy/nginx-logs-policy
    {
@@ -542,6 +553,7 @@ volumes:
    ```
 
 3. Настрой **Filebeat autodiscover**:
+
    ```yaml
    # filebeat/filebeat.yml
    filebeat.autodiscover:
@@ -577,6 +589,7 @@ volumes:
 > ℹ️ minikube должен быть уже запущен (ты запустил его в начале дня). Проверь: `kubectl get nodes`
 
 **Практика 1 — Namespace и деплой тестового приложения:**
+
 ```bash
 kubectl create namespace production
 ```
@@ -651,6 +664,7 @@ kubectl get pods -n production --watch
 ```
 
 **Практика 2 — Ingress Nginx с rate limiting:**
+
 ```yaml
 # k8s/ingress.yml
 apiVersion: networking.k8s.io/v1
@@ -688,6 +702,7 @@ curl http://demo.local
 ```
 
 **Практика 3 — HorizontalPodAutoscaler:**
+
 ```yaml
 # k8s/hpa.yml
 apiVersion: autoscaling/v2
@@ -718,6 +733,7 @@ spec:
 ```
 
 **Практика 4 — Нагрузка и наблюдение за автоскейлингом:**
+
 ```bash
 kubectl apply -f k8s/hpa.yml
 
@@ -830,6 +846,7 @@ for i in {1..10}; do curl -s -o /dev/null -w "%{http_code}\n" http://localhost:8
 ```
 
 **Добавь KrakenD в prometheus.yml** (обновление конфига Дня 1):
+
 ```yaml
 # Добавить в ~/sre-bootstrap/monitoring/prometheus/prometheus.yml
   - job_name: krakend
@@ -931,6 +948,7 @@ main "$@"
 {% endraw %}
 
 **Скрипт 2 — Docker Cleanup (Toil Elimination):**
+
 ```bash
 #!/bin/bash
 # scripts/docker-cleanup.sh
@@ -949,6 +967,7 @@ docker system df
 ```
 
 **Скрипт 3 — Service Availability Checker:**
+
 ```bash
 #!/bin/bash
 # scripts/check-services.sh
@@ -1018,6 +1037,7 @@ volumes:
 ```
 
 **Скрипт автоматического бэкапа с ротацией:**
+
 ```bash
 #!/bin/bash
 # scripts/pg-backup.sh
@@ -1065,6 +1085,7 @@ log "Current backups: $(ls -1 "$BACKUP_DIR"/*.sql.gz 2>/dev/null | wc -l) files"
 ```
 
 **Скрипт восстановления с проверкой:**
+
 ```bash
 #!/bin/bash
 # scripts/pg-restore.sh
@@ -1104,6 +1125,7 @@ log "✅ Restore complete. Public tables: ${TABLE_COUNT// /}"
 ```
 
 **Добавь postgres-exporter в Prometheus** (обновление конфига Дня 1):
+
 ```yaml
 # Добавить в prometheus.yml
   - job_name: postgres
@@ -1335,7 +1357,8 @@ backup:
 **Что делаешь:** Создаёшь набор runbooks для типичных инцидентов.
 
 **Шаблон Runbook:**
-```markdown
+
+````markdown
 # Runbook: [НАЗВАНИЕ ИНЦИДЕНТА]
 
 ## Metadata
@@ -1350,12 +1373,16 @@ backup:
 ## Диагностика (выполнять последовательно)
 1. Проверить состояние сервисов:
    ```bash
+
    kubectl get pods -n production | grep -v Running
    docker ps --filter "status=restarting"
+
    ```
 2. Проверить логи:
    ```bash
+
    kubectl logs -n production -l app=demo-app --tail=100 | grep -iE "error|fatal|panic"
+
    ```
 3. Открыть Grafana дашборд: [ссылка]
 
@@ -1372,7 +1399,7 @@ backup:
 - [ ] Обновить runbook если нашли новый паттерн
 - [ ] Завести задачу на устранение первопричины (ticket)
 - [ ] Провести постмортем если P1/P2
-```
+````
 
 **Создай 5 runbooks:**
 
@@ -1468,6 +1495,7 @@ backup:
 **Что делаешь:** Намеренно ломаешь окружение и восстанавливаешь по своим runbooks. Замеряешь MTTD и MTTR.
 
 **Упражнение 1 — Kill a container:**
+
 ```bash
 # Терминал 1: наблюдение
 watch -n 2 'bash ~/sre-bootstrap/scripts/check-services.sh'
@@ -1487,6 +1515,7 @@ docker compose start grafana
 ```
 
 **Упражнение 2 — Pod CrashLoopBackOff в Kubernetes:**
+
 ```bash
 # Намеренно задеплой сломанную конфигурацию
 kubectl set image deployment/demo-app demo-app=nginx:nonexistent-tag -n production
@@ -1501,6 +1530,7 @@ kubectl rollout status deployment/demo-app -n production --timeout=60s
 ```
 
 **Упражнение 3 — PostgreSQL disaster recovery (полный цикл):**
+
 ```bash
 # Убедись что postgres запущен
 cd ~/sre-bootstrap/database && docker compose up -d
@@ -1534,6 +1564,7 @@ PGPASSWORD=sre_pass psql -h localhost -U sre_user -d sre_demo_restored \
 ```
 
 **Drill Report (заполни по итогам каждого упражнения):**
+
 ```
 === CHAOS DRILL REPORT ===
 Drill Name    : [название]
@@ -1554,6 +1585,7 @@ Action Item   : [что нужно автоматизировать/улучши
 > ℹ️ `predict_linear` требует достаточного количества данных в lookback window. После 1–2 дней работы стека данных хватит. Если данных меньше — используй `[2h:1m]` вместо `[7d:1h]`.
 
 **PromQL запросы для capacity planning:**
+
 ```promql
 # CPU: прогноз сколько дней до 80% порога
 # (возвращает значение в секундах, дели на 86400 для дней)
@@ -1582,6 +1614,7 @@ predict_linear(
 4. **Overview table** — Table panel с текущими значениями и статусом ✅⚠️🔴
 
 **Шаблон Capacity Planning Report:**
+
 ```markdown
 # Capacity Planning Report — [Дата]
 

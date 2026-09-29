@@ -32,7 +32,7 @@ time: "2.5 ч"
 
 > **Проверь понимание:** ты запустил под командой `kubectl run` без Deployment и удалил его. Вернётся ли он?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. У такого пода нет контроллера, который следил бы за количеством копий. Желаемое состояние «под должен существовать» нигде не записано, поэтому и возвращать нечего.
@@ -49,7 +49,7 @@ Deployment стоит над ReplicaSet и добавляет главное: о
 
 > **Проверь понимание:** ты вручную удалил ReplicaSet, которым владеет Deployment. Что произойдёт?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Deployment заметит, что ReplicaSet для текущего шаблона нет, и создаст его заново. Поды пересоздадутся. Управлять нужно верхним объектом (Deployment), а не тем, что он создаёт.
@@ -66,7 +66,7 @@ Deployment заметит, что ReplicaSet для текущего шабло�
 
 > **Проверь понимание:** чем `kubectl apply` отличается от `kubectl create`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `create` императивно создаёт объект и падает, если он уже есть. `apply` декларативно приводит объект к манифесту и безопасно запускается повторно, поэтому его используют в CI и при работе с файлами из git.
@@ -83,7 +83,7 @@ Deployment заметит, что ReplicaSet для текущего шабло�
 
 > **Проверь понимание:** зачем `kind load`, если образ уже есть в локальном Docker?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Кластер kind работает внутри своих контейнеров-узлов со своим хранилищем образов. Docker хоста для него не источник. Без `kind load` (или реестра) узел не найдёт образ и поды зависнут в `ErrImagePull`.
@@ -100,7 +100,7 @@ Deployment заметит, что ReplicaSet для текущего шабло�
 
 **Предскажи:** сколько объектов появится после `apply` одного Deployment (не считая самого Deployment) и как будут называться поды?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Появятся ReplicaSet (один) и под (один по числу реплик). Имя ReplicaSet: `notes-<хэш>`, имя пода: `notes-<хэш>-<5 символов>`.
@@ -198,7 +198,7 @@ pod/notes-6d8c9b7f5-x2k7p   1/1     Running   0          12s   10.244.1.3   note
 
 **Предскажи:** `port-forward` прокидывает порт с твоей машины в под. Что вернёт `curl http://127.0.0.1:8080/healthz` и пойдёт ли этот запрос через какой-либо балансировщик?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Ответ `ok` с кодом 200. Балансировщика нет: `kubectl` открывает туннель к API-серверу, а тот к конкретному поду. Service мы ещё не создавали (урок 5.3).
@@ -249,7 +249,7 @@ ok
 
 **Предскажи:** ты удалишь под, у которого `replicas: 3`. Сколько подов будет через 2 секунды и будет ли у нового то же имя?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Снова 3 (один будет в статусе `ContainerCreating` или `Running`). Имя другое: суффикс случаен, IP тоже новый. Под одноразовый, ReplicaSet создаёт замену, а не воскрешает старый.
@@ -307,7 +307,7 @@ notes-6d8c9b7f5-a1b2c   notes-6d8c9b7f5
 
 **Предскажи:** что покажет `kubectl diff -f k8s/base/10-deployment.yaml`, если ты уже вручную сделал `scale --replicas=3`, а в файле стоит `replicas: 3`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Ничего значимого: желаемое состояние совпало с живым. Кроме `replicas` в дифф могут попасть служебные поля, например `generation`. Если в файле остаётся `replicas: 1`, дифф покажет `-  replicas: 3` и `+  replicas: 1`.
@@ -440,7 +440,7 @@ kubectl describe nodes | grep -A6 'Allocated resources'
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **1. ImagePullBackOff (опечатка в теге).** В `describe` в событиях: `Failed to pull image "ghcr.io/<user>/notes:0.4.O": ... manifest unknown` или `not found`. Кластер пытается снова с нарастающей паузой, отсюда `BackOff`. Это не «упало приложение», образа просто нет. Причины бывают такие: опечатка в теге или имени, образ не опубликован, приватный реестр без `imagePullSecrets` (текст `unauthorized` или `denied`), лимит запросов реестра. Исправление: `kubectl -n notes set image deploy/notes notes=ghcr.io/<github-user>/notes:0.4.0` (и поправить файл, чтобы git совпадал с кластером). Для приватного образа:

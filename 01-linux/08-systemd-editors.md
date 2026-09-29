@@ -36,7 +36,7 @@ time: "2.5 ч"
 
 > **Проверь понимание:** чем `systemctl start notes` отличается от `systemctl enable notes`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `start` запускает сервис сейчас, но после перезагрузки он не поднимется. `enable` создаёт симлинк в `multi-user.target.wants/`, и сервис стартует при загрузке, но прямо сейчас не запускается. Поэтому обычно пишут `enable --now`: и то, и другое.
@@ -53,7 +53,7 @@ time: "2.5 ч"
 
 > **Проверь понимание:** почему `ExecStart=python3 /opt/notes/app.py` не сработает?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 systemd не ищет команду по `PATH`, как shell: путь должен быть абсолютным (`/usr/bin/python3`). Кроме того, в `ExecStart` нет shell: нельзя писать `>`, `|`, `$VAR` (для подстановки переменных есть отдельный синтаксис). Получишь `status=203/EXEC`.
@@ -68,7 +68,7 @@ systemd не ищет команду по `PATH`, как shell: путь дол�
 
 > **Проверь понимание:** ты убил сервис командой `kill -9`, `Restart=on-failure`. Что произойдёт? А после `systemctl stop`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 После `kill -9` процесс завершён сигналом, это failure, systemd поднимет его через `RestartSec`. После `systemctl stop` сервис остановлен намеренно, и он останется остановленным.
@@ -81,7 +81,7 @@ systemd собирает вывод сервисов в журнал (journal). 
 
 > **Проверь понимание:** как показать только ошибки сервиса за последний час?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `journalctl -u notes -p err --since "1 hour ago" --no-pager`
@@ -119,7 +119,7 @@ systemd собирает вывод сервисов в журнал (journal). 
 
 > **Проверь понимание:** ты открыл vim, набираешь текст, а он выполняет странные команды. Что случилось?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Ты в обычном режиме, а не в режиме вставки. Нажми `Esc`, затем `i` и печатай. Выйти без сохранения: `Esc`, `:q!`.
@@ -136,7 +136,7 @@ systemd собирает вывод сервисов в журнал (journal). 
 
 **Предскажи:** ты открыл файл, нажал `dd` три раза, затем `u`. Сколько строк останется удалено? Что произойдёт, если набрать `:q` после изменения?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `u` отменяет одно последнее удаление, значит, удалено две строки. `:q` при несохранённых правках откажет: `E37: No write since last change (add ! to override)`.
@@ -184,7 +184,7 @@ systemd собирает вывод сервисов в журнал (journal). 
 
 **Предскажи:** какие права получит файл, созданный `sudo tee`, и сможет ли его прочитать пользователь `notes` без `chgrp`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 По умолчанию 644 `root:root`: читать смогут все, но это неверная модель для конфига (в будущем в нём появятся секреты). Поэтому явно задаём 640 `root:notes`: читает только группа `notes`.
@@ -267,7 +267,7 @@ systemd собирает вывод сервисов в журнал (journal). 
 
 **Предскажи:** после `kill -9` у сервиса изменится PID или нет? Что покажет `systemctl status` в строке `Active:`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 PID станет другим: это новый процесс. Сервис будет `active (running)`, но время в `since` свежее. В журнале появится строка про `code=killed, signal=KILL` и `Scheduled restart job`.
@@ -335,7 +335,7 @@ inactive
 
 **Предскажи:** сколько строк на один запрос `curl /healthz` появится в журнале? Попадёт ли туда что-то из `/healthz` при уровне `info`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 По контракту приложения служебные пути `/healthz`, `/readyz` в access-лог на уровне `info` не пишутся, поэтому запрос `/healthz` строки не даст, а запрос `/notes` даст. Проверь сам.
@@ -381,7 +381,7 @@ Sep 29 10:00:06 srv python3[2340]: 2026-09-29 10:00:06,321 INFO method=GET path=
 
 **Предскажи:** сможет ли сервис после `ProtectSystem=strict` записывать заметки в `/var/lib/notes/notes.txt`? А если убрать `ReadWritePaths`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 С `ReadWritePaths=/var/lib/notes` сможет. Без него запись даст `Read-only file system`, `POST /notes` вернёт 500, а `/readyz` станет 503.
@@ -476,7 +476,7 @@ ls -ld /var/lib/notes /opt/notes/app.py
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 1. **`status=203/EXEC`**: в `ExecStart` неверный путь или нет права на исполнение. `command -v python3`, исправь юнит, затем `sudo systemctl daemon-reload && sudo systemctl restart notes`.

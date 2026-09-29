@@ -38,7 +38,7 @@ time: "2 ч"
 
 > **Проверь понимание:** почему логи смотрят четвёртым, а не первым?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Потому что у многих поломок логов просто нет: под в `Pending` ещё не запущен, `ImagePullBackOff` не смог скачать образ, `CreateContainerConfigError` не создал контейнер. Статус и события говорят, до какой стадии дошёл под, а логи имеют смысл, только если контейнер стартовал.
@@ -64,7 +64,7 @@ time: "2 ч"
 
 > **Проверь понимание:** под в `Pending`, `kubectl logs` выдаёт пустоту. Это ошибка команды?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Контейнера ещё не было, логам взяться неоткуда. Причину `Pending` смотрят в `kubectl describe pod`, в секции `Events` (сообщение `FailedScheduling` объяснит, что не подошло).
@@ -91,7 +91,7 @@ kubectl get events -n notes --sort-by=.lastTimestamp        # свежие в к
 
 > **Проверь понимание:** в `Last State` стоит `Terminated`, `Reason: Error`, `Exit Code: 1`. Куда смотреть дальше?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 В `kubectl logs <под> --previous`: приложение само завершилось с ошибкой, и причина написана в его последних строках. `OOMKilled` тут нет, иначе был бы код 137.
@@ -111,7 +111,7 @@ kubectl get events -n notes --sort-by=.lastTimestamp        # свежие в к
 
 > **Проверь понимание:** зачем сначала откат, а потом разбор?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Потому что первая цель инцидента это восстановить сервис, а не понять причину. Откат занимает минуту и безопасен, а причина остаётся в истории ревизий и логах для спокойного разбора.
@@ -154,7 +154,7 @@ postgres-0               1/1     Running   0          40m
 
 **Предскажи:** если в Deployment написать несуществующий тег образа, что увидит пользователь сайта в момент выкатки: ошибки или работающий сайт (у Deployment `maxUnavailable: 0` из урока 5.7)?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Сайт продолжит работать. Новый под застрянет в `ImagePullBackOff`, но RollingUpdate не гасит старые поды, пока новый не стал Ready. Плохая выкатка остаётся «зависшей», а не роняет сервис.
@@ -230,7 +230,7 @@ Error: couldn't find key NO_SUCH_KEY in Secret notes/notes-db
 
 **Предскажи:** контейнер падает сразу при старте. `kubectl logs <под>` показывает либо пусто, либо ошибку нового запуска. Какой ключ нужен, чтобы увидеть ошибку, из-за которой контейнер упал в прошлый раз?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `--previous` (или `-p`). Текущий запуск может ещё не успеть ничего написать, а предыдущий уже записал причину смерти.
@@ -286,7 +286,7 @@ python: can't open file '/no/such/app.py': [Errno 2] No such file or directory
 
 **Предскажи:** что покажет `kubectl get endpoints notes -n notes`, если в Service `notes` ошибочно поменять `selector` на `app.kubernetes.io/name: notez`? Что при этом будет с подами?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Endpoints станут `<none>`, а поды останутся `Running` и `Ready`: с ними всё в порядке, просто Service их не находит. Клиенты через Gateway получат ошибку (Envoy ответит 503). Это классика: здоровые поды и мёртвый сервис.
@@ -341,7 +341,7 @@ notes   <none>      2h
 
 **Предскажи:** какая строка в таком документе должна стоять первой: «как искать причину» или «как вернуть сервис»?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 «Как вернуть сервис»: если сбой начался после выкатки, сначала откат, потом разбор. Поэтому раздел про откат идёт в начале, а поиск причины следом.
@@ -460,7 +460,7 @@ kubectl get netpol,svc -n notes
 
 Сначала попробуй найти и исправить сам. Если завис более 10 минут, откат: `helm rollback notes <ревизия> -n notes` или `kubectl rollout undo`. Разбор возможных поломок:
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 - **Неверный образ.** Статус `ImagePullBackOff`, в событиях `Failed to pull image ... not found`. Исправление: вернуть верный тег (`helm upgrade` или `kubectl rollout undo`).

@@ -37,7 +37,7 @@ Job (задание) создаёт под и следит, чтобы зада�
 
 > **Проверь понимание:** миграция базы упала на середине, `backoffLimit: 6`. Что произойдёт и почему это опасно?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Job создаст новый под и запустит миграцию заново, до шести раз. Если миграция не идемпотентна (например, добавляет колонку без `IF NOT EXISTS`), повтор упадёт на уже сделанной части. Поэтому миграции пишут так, чтобы повторный запуск был безопасен, а `backoffLimit` ставят небольшой.
@@ -62,7 +62,7 @@ CronJob (периодическое задание) сам не запускае
 
 > **Проверь понимание:** CronJob запускается каждый час, а очередной бэкап идёт уже полтора часа. Что произойдёт при `concurrencyPolicy: Forbid`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Запуск, который наступил в момент работы предыдущего, будет пропущен (в событиях появится `JobAlreadyActive`). Следующий запуск пройдёт, если к нему предыдущий уже завершится. При `Allow` два бэкапа шли бы параллельно, при `Replace` первый был бы убит.
@@ -77,7 +77,7 @@ DaemonSet (набор демонов) гарантирует, что на каж
 
 > **Проверь понимание:** в кластере 1 control-plane и 2 worker, в DaemonSet нет tolerations. Сколько подов будет и почему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Два, по одному на каждый worker. На control-plane под не сядет из-за taint `NoSchedule`, а DaemonSet «желаемых» подов считает только по узлам, куда под допустим (в `kubectl get ds` это столбец `DESIRED`).
@@ -111,7 +111,7 @@ mkdir -p ~/notes/k8s/examples
 
 **Предскажи:** запускаем Job, который печатает строку и завершается с кодом 0. Сколько подов будет у Job и в каком статусе они останутся? Потом меняем команду на `exit 1` и ставим `backoffLimit: 2`. Сколько подов создастся до того, как Job сдастся?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Успешный Job: один под в статусе `Completed`, он не удаляется, чтобы можно было прочитать логи. Упавший с `backoffLimit: 2`: первый запуск плюс две повторные попытки, то есть 3 пода в статусе `Error`, после чего Job получает условие `BackoffLimitExceeded`.
@@ -198,7 +198,7 @@ hello-r2jwl   0/1     Error    0          11s
 
 **Предскажи:** в кластере 3 узла (`notes-control-plane`, `notes-worker`, `notes-worker2`). Сколько подов создаст DaemonSet без tolerations? А с toleration на `node-role.kubernetes.io/control-plane`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Без toleration 2 пода (только worker), с toleration 3 (и control-plane тоже).
@@ -298,7 +298,7 @@ node-agent   3         3         3       3            3           <none>        
 
 **Предскажи:** мы создаём PVC `pg-backups`, а CronJob монтирует его. Кластер kind использует StorageClass `standard` с режимом `WaitForFirstConsumer`. В каком статусе будет PVC сразу после `kubectl apply` и когда он станет `Bound`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Сразу `Pending`: том не создаётся, пока нет пода, который его использует (так планировщик выбирает узел). Станет `Bound`, когда стартует первый под бэкапа, то есть после ручного запуска Job. Это нормально, а не поломка.
@@ -464,7 +464,7 @@ kubectl get nodes -o custom-columns=NAME:.metadata.name,TAINTS:.spec.taints
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **Сценарий 1: CronJob не запускается.** В `kubectl get cronjob pg-backup` столбец `LAST SCHEDULE` пустой, а `ACTIVE` равен 0. Расписание изменено на валидное по синтаксису, но никогда не наступающее (`0 0 30 2 *`, 30 февраля), либо `suspend: true`. Синтаксис API не проверяет на осмысленность, поэтому ошибки при `apply` нет. Исправление: вернуть `schedule: "0 * * * *"` и `suspend: false`, проверить `kubectl create job --from=cronjob/pg-backup check-1`. Урок: после правки расписания смотри `LAST SCHEDULE` на следующем запуске, а не радуйся отсутствию ошибки.

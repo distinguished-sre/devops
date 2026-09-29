@@ -34,7 +34,7 @@ Metrics-server не заменяет Prometheus (тема 8): он не хран
 
 > **Проверь понимание:** чем `kubectl top pod` отличается от метрик контейнера в Prometheus и почему HPA использует первое?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `kubectl top` и HPA читают снимок из metrics-server через API кластера: он лёгкий, обновляется каждые 15 секунд и есть в любом кластере. Prometheus хранит историю и умеет запросы, но это отдельная система, которую нужно ставить и поддерживать. Штатный HPA не зависит от неё. Метрики из Prometheus в HPA можно подключить через адаптер или KEDA, но это отдельная настройка.
@@ -55,7 +55,7 @@ HPA (`autoscaling/v2`) это контроллер, который каждые 
 
 > **Проверь понимание:** 4 пода, цель 50% CPU, сейчас средняя загрузка 25%. Сколько реплик потребует HPA при `minReplicas: 2`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `ceil(4 * 25 / 50) = 2`. Это равно минимуму, значит HPA уменьшит до 2, но не сразу: см. окно стабилизации ниже.
@@ -82,7 +82,7 @@ HPA (`autoscaling/v2`) это контроллер, который каждые 
 
 > **Проверь понимание:** HPA поднял реплики до `maxReplicas`, но часть подов в `Pending`. Что это значит и кто должен добавить узлы?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 В кластере не хватает ресурсов для `requests` новых подов, планировщик не находит узел. HPA узлы не добавляет. В облаке это делает Cluster Autoscaler или Karpenter, в kind нужно освободить ресурсы или увеличить размер узлов.
@@ -97,7 +97,7 @@ HPA (`autoscaling/v2`) это контроллер, который каждые 
 
 **Предскажи:** что ответит `kubectl top pods -n notes` в кластере без metrics-server? А сразу после установки, до того как ты поправишь TLS?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Без metrics-server: `error: Metrics API not available`. Сразу после установки без флага `--kubelet-insecure-tls` под metrics-server будет запущен, но не `Ready` (не может проверить сертификаты kubelet), и `top` продолжит ругаться.
@@ -171,7 +171,7 @@ postgres-0               4m           58Mi
 
 **Предскажи:** Deployment `notes` (requests `50m`, limits `200m`) получает нагрузку, которая держит каждый под на пределе limit. HPA настроен на цель 50%, `min 2`, `max 6`. Сколько реплик будет через 2-3 минуты и почему именно столько?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Под на пределе limit использует 200m, то есть 400% от request 50m. По формуле `ceil(3 * 400 / 50) = 24`, но `maxReplicas` равен 6, поэтому будет 6. Число упирается в потолок.
@@ -259,7 +259,7 @@ Events:
 
 **Предскажи:** что произойдёт с числом реплик, если оставить в Deployment {% raw %}`replicas: {{ .Values.replicaCount }}`{% endraw %} и при этом включить HPA, а потом сделать `helm upgrade`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Каждый `helm upgrade` будет сбрасывать реплики к `replicaCount`, а HPA будет снова их менять. Возникает борьба двух источников истины: реплики дёргаются при каждой выкатке. Поэтому при включённом HPA поле `replicas` в шаблоне пропускают.
@@ -437,7 +437,7 @@ kubectl get apiservice v1beta1.metrics.k8s.io
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **Сценарий 1: `<unknown>/50%` из-за отсутствия requests.** В `describe hpa` событие `failed to get cpu utilization: missing request for cpu in container notes of Pod ...`. Из Deployment убрали `resources.requests`. Исправление: вернуть `requests.cpu: 50m` (в чарте: блок `resources` в `values.yaml`) и выкатить. Через минуту `TARGETS` покажет число. Урок: HPA считает проценты от `requests`, без них считать нечего.

@@ -38,7 +38,7 @@ time: "2 ч"
 
 > **Проверь понимание:** PVC создан, а `kubectl get pvc` показывает `Pending` и под ещё не запущен. Это поломка?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Не обязательно. При `WaitForFirstConsumer` том создаётся только после появления пода. Смотри `kubectl describe pvc`: событие `waiting for first consumer to be created before binding` штатное. Поломка, если под уже есть, а PVC всё ещё `Pending`: тогда ищи неверный `storageClassName` или нехватку места.
@@ -59,7 +59,7 @@ Deployment создаёт взаимозаменяемые поды со слу�
 
 > **Проверь понимание:** ты удалил под `postgres-0` командой `kubectl delete pod`. Что произойдёт с данными и с именем нового пода?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 StatefulSet-контроллер создаст под с тем же именем `postgres-0` и подключит тот же PVC `data-postgres-0`. Данные на месте, база стартует с существующего каталога (сработает восстановление после аварийного останова, crash recovery). Клиенты по имени найдут её снова.
@@ -74,7 +74,7 @@ StatefulSet-контроллер создаст под с тем же имене
 
 > **Проверь понимание:** зачем StatefulSet нужен headless Service, если можно было бы использовать обычный ClusterIP?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Обычный сервис балансирует запросы между подами и скрывает, какой именно ответил. Для базы нужно обращаться к конкретной реплике (записывать в primary, читать с replica), а значит нужен DNS-адрес каждого пода отдельно. Headless Service даёт такие имена.
@@ -89,7 +89,7 @@ StatefulSet-контроллер создаст под с тем же имене
 
 > **Проверь понимание:** ты поменял значение в Secret `notes-db` и перезапустил под. Поменяется ли пароль пользователя `notes` в базе?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Переменная нужна только при создании кластера баз (initdb) в пустом каталоге. Пароль в существующей базе меняется командой `ALTER USER notes PASSWORD '...'`, а Secret надо привести в соответствие.
@@ -206,7 +206,7 @@ spec:
 
 **Предскажи:** как будет называться PVC, который создаст StatefulSet, и в каком статусе он окажется сразу после `apply`, пока под не запущен?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 PVC `data-postgres-0` (шаблон `data` + имя пода), сначала `Pending` (режим `WaitForFirstConsumer`), после запуска пода `Bound`.
@@ -270,7 +270,7 @@ LOG:  database system is ready to accept connections
 
 **Предскажи:** какой IP вернёт DNS для имени `db.notes.svc`: виртуальный ClusterIP или адрес пода?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Адрес пода из диапазона podCIDR, например 10.244.2.7. У headless Service виртуального адреса нет, DNS отдаёт адреса endpoints.
@@ -336,7 +336,7 @@ INSERT 0 1
 
 **Предскажи:** после `delete pod`, после `delete statefulset` и после `delete pvc` в каких случаях строка про «первую заметку» останется?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 После `delete pod` останется (тот же PVC). После `delete statefulset` тоже (PVC остаётся, при новом `apply` подхватится). После `delete pvc` пропадёт: политика класса `Delete` удаляет PV и каталог.
@@ -413,7 +413,7 @@ data-postgres-0   Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi       
 
 **Предскажи:** сможет ли под `notes` из Deployment достучаться до `db.notes.svc:5432`, если приложение пока не настроено на Postgres?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Сеть да (Service работает), но приложение всё ещё в режиме `STORE=file` и базу не использует. Переключение делаем в уроке 5.6 через ConfigMap.
@@ -508,7 +508,7 @@ kubectl -n notes get pvc -o wide
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **Сценарий 1: PVC `Pending`.** В `describe pvc` событие:

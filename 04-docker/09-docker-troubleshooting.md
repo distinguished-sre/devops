@@ -43,7 +43,7 @@ time: "1.5 ч"
 
 > **Проверь понимание:** `docker logs` пуст, а контейнер в статусе `Exited (1)`. Какие две причины самые вероятные?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Первая: процесс упал раньше, чем успел что-то напечатать (например, не нашёл `ENTRYPOINT` или бинарник). Тогда смотри код выхода (126, 127) и запускай образ с другой командой: `docker run --rm -it --entrypoint sh <образ>`.
@@ -69,7 +69,7 @@ time: "1.5 ч"
 
 > **Проверь понимание:** контейнер завершился с кодом 137, и `OOMKilled: false`. Что это значит?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Процесс убит сигналом SIGKILL, но не за память. Чаще всего это `docker stop`, который не дождался завершения (приложение игнорирует SIGTERM, например, из-за shell-формы `CMD`), или ручной `docker kill`, или оркестратор. Ищи, кто послал сигнал, и чини обработку SIGTERM.
@@ -110,7 +110,7 @@ Docker хранит всё в `/var/lib/docker`. Четыре главных п�
 
 > **Проверь понимание:** `df -h` показывает `/var` на 100%, а `du -sh /var/lib/docker/*` суммарно даёт мало. Что проверишь?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Сначала `docker system df`: он считает образы, контейнеры и тома. Потом размер логов: `sudo du -sh /var/lib/docker/containers/*/*-json.log`. Если места нет и `du` его не видит, на диске могут быть удалённые, но открытые файлы (`sudo lsof +L1`) или исчерпаны inodes (`df -i`, урок 1.5).
@@ -125,7 +125,7 @@ Docker хранит всё в `/var/lib/docker`. Четыре главных п�
 
 **Предскажи:** контейнер `notes:0.4.0` с лимитом 64 МБ просят удержать 100 МБ через `/leak?mb=100`. Что вернёт `curl`, какой будет код выхода и значение `OOMKilled`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `curl` получит обрыв соединения (`Empty reply from server`), процесс умрёт с кодом 137, `OOMKilled` будет `true`.
@@ -187,7 +187,7 @@ exit=137 oom=true mem=67108864
 
 **Предскажи:** контейнер печатает 200 тысяч строк. Где лежит их файл на хосте и сколько он весит примерно? Изменится ли размер после `docker restart`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Файл `/var/lib/docker/containers/<id>/<id>-json.log`, около 2-3 МБ (каждая строка оборачивается в JSON с временем и потоком). После `restart` тот же файл продолжает расти, лог живёт, пока контейнер не удалён (`docker rm`).
@@ -251,7 +251,7 @@ docker system df
 
 **Предскажи:** какая из команд `docker image prune`, `docker image prune -a`, `docker system prune --volumes` удалит образ `notes:0.4.0`, если запущен только стек PostgreSQL, а `notes` остановлен?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `image prune` (без `-a`) не тронет: у образа есть тег, он не dangling. `image prune -a` удалит, потому что ни один запущенный контейнер его не использует (и остановленный, если контейнера нет вовсе). `system prune --volumes` без `-a` образ оставит, но удалит неподключённые тома. Первая по риску безопаснее всех, третья опаснее.
@@ -324,7 +324,7 @@ Build Cache     18        0         180MB     180MB
 
 **Предскажи:** что сделает `make clean`, если в нём есть `docker compose down` без `-v`, и потеряется ли БД?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Контейнеры и сеть удалятся, том `pgdata` останется: без `-v` тома `compose down` не трогает. БД не потеряется. Поэтому в `clean` мы осознанно не пишем `-v`.
@@ -463,7 +463,7 @@ docker inspect -f '{% raw %}{{.Name}} oom={{.State.OOMKilled}} restarts={{.Resta
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **1. Диск 100% из-за логов.** `df` показывает заполненный раздел, `docker system df` мало, а `du` по `*-json.log` выдаёт один файл на гигабайты. Починка: пересоздать контейнер с `--log-opt max-size=10m --log-opt max-file=3` (в Compose ключ `logging: driver: json-file, options: max-size, max-file`), либо обнулить файл `sudo truncate -s 0 <LogPath>` как срочную меру. Постоянно: `log-opts` в `/etc/docker/daemon.json`. Ещё стоит найти, почему контейнер пишет так много (цикл ошибок), иначе ротация только скроет проблему.

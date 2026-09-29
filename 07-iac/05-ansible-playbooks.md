@@ -42,7 +42,7 @@ Ad-hoc команды из прошлого урока хороши для ра�
 
 > **Проверь понимание:** чем `state: present` в модуле `apt` отличается от команды `apt install`?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 `apt install` это действие: оно каждый раз что-то делает. `state: present` это описание итога: модуль проверяет, стоит ли пакет, и ставит только при необходимости. Поэтому повторный запуск безопасен и показывает `ok`, а не `changed`.
 
@@ -58,7 +58,7 @@ Ad-hoc команды из прошлого урока хороши для ра�
 
 > **Проверь понимание:** ты задал `notes_port: 8080` в `vars` плейбука и запустил с `-e notes_port=9090`. Какой порт попадёт в шаблон?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 9090. Переменная из `-e` имеет наивысший приоритет.
 
@@ -89,7 +89,7 @@ handlers:
 
 > **Проверь понимание:** три задачи изменили файлы и все вызвали один handler. Сколько раз он выполнится?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Один раз, в конце play. Это защита от трёх перезапусков подряд.
 
@@ -105,7 +105,7 @@ handlers:
 
 > **Проверь понимание:** как заставить `command: touch /tmp/flag` показывать `ok` при втором запуске?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Добавить `args: {creates: /tmp/flag}`, или заменить на модуль `ansible.builtin.file` с `state: touch` и `modification_time: preserve`, или задать `changed_when: false`, если команда только читает.
 
@@ -126,7 +126,7 @@ handlers:
 
 > **Проверь понимание:** сухой прогон показал `changed=0`, а на деле после запуска что-то изменилось. Как это возможно?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Изменение делала задача `command` или `shell`: в `--check` они пропускаются, и Ansible не может предсказать их эффект. Кроме того, задача может зависеть от результата предыдущей, которая в сухом прогоне ничего не сделала.
 
@@ -157,7 +157,7 @@ notes-vm | SUCCESS => {
 
 **Предскажи:** что покажет `PLAY RECAP` при первом запуске и при втором? Сколько задач будут `changed` во второй раз?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Первый запуск: `changed` равен числу задач, которые что-то создали (пакеты, пользователь, каталоги). Второй: `changed=0`, все задачи `ok`. Если во втором запуске `changed` не ноль, в плейбуке есть неидемпотентная задача.
 
@@ -238,7 +238,7 @@ notes-vm                   : ok=5    changed=0    unreachable=0    failed=0    s
 
 **Предскажи:** какие факты нужны, чтобы собрать строку репозитория для Ubuntu 24.04 (`noble`) и 26.04 одним плейбуком?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Архитектура процессора (`amd64` или `arm64`) и кодовое имя релиза. Оба даёт сбор фактов: `ansible_facts['architecture']` (значения `x86_64` и `aarch64`, поэтому нужна таблица соответствия) и `ansible_facts['distribution_release']`. Здесь архитектуру берём готовой командой `dpkg --print-architecture`.
 
@@ -336,7 +336,7 @@ Docker Compose version v5.x.x
 
 **Предскажи:** ты меняешь в плейбуке только `notes_log_level` с `INFO` на `DEBUG` и запускаешь. Что покажет задача с шаблоном и выполнится ли handler? А если запустить ещё раз?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Первый запуск: задача `changed`, handler выполнится. Второй: задача `ok`, handler пропущен, потому что нечего перечитывать.
 
@@ -417,7 +417,7 @@ notes-vm | CHANGED | rc=0 >>
 
 **Предскажи:** что будет, если `site.yml` подключит `config.yml` раньше `base.yml`?
 
-<details><summary>Ответ</summary>
+<details markdown="1"><summary>Ответ</summary>
 
 Задача шаблона упадёт: каталога `/etc/notes` и группы `notes` ещё нет, `template` вернёт ошибку про несуществующую группу или каталог. Порядок import_playbook задаёт порядок выполнения.
 
@@ -494,7 +494,7 @@ bash ~/notes/break/7.5/break.sh random
 
 ### Исправление
 
-<details><summary>Разбор сценариев</summary>
+<details markdown="1"><summary>Разбор сценариев</summary>
 
 1. `changed=1` каждый раз: в плейбуке `command` или `shell` без `creates`, `removes` или `changed_when`. Замени на модуль (`file`, `copy`, `get_url`) или добавь `creates: /путь/результата`. Проверка: второй запуск даёт `changed=0`.
 2. `'foo' is undefined`: переменная не задана или опечатка в имени. Ищи `grep -rn foo playbooks templates`, определи в `vars` или `group_vars`, либо задай `{{ foo | default('значение') }}`, если пустое допустимо.

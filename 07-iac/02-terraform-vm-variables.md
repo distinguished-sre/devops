@@ -35,7 +35,7 @@ time: "2 ч"
 
 > **Проверь понимание:** в `terraform.tfvars` стоит `vm_cores = 4`, а ты запустил `terraform plan -var vm_cores=8`. Сколько ядер получит ВМ?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Восемь. Флаг `-var` приоритетнее файла `terraform.tfvars`. Файл, в свою очередь, приоритетнее переменной окружения `TF_VAR_vm_cores` и `default`.
@@ -50,7 +50,7 @@ time: "2 ч"
 
 > **Проверь понимание:** переменная помечена `sensitive = true`. Можно ли теперь коммитить `terraform.tfstate` в git?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нельзя. `sensitive` скрывает значение только в выводе команд. В state оно лежит как есть, и любой, кто прочитает файл, увидит секрет. Поэтому `*.tfstate*` в `.gitignore` (добавлено в 3.1), а в командной работе state живёт в закрытом бакете (урок 7.3).
@@ -75,7 +75,7 @@ time: "2 ч"
 
 > **Проверь понимание:** три правила SG созданы через `count` по списку портов `[22, 80, 443]`. Ты убрал порт 80 из середины. Что покажет `plan`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Индекс 1 теперь занимает порт 443, а индекс 2 исчезает. Terraform покажет изменение правила 1 (с 80 на 443) и удаление правила 2 вместо простого удаления порта 80. Для правил на живой инфраструктуре это лишние изменения и риск короткого разрыва. С `for_each` по карте `{ssh, http, https}` удалилось бы только `http`.
@@ -94,7 +94,7 @@ time: "2 ч"
 
 > **Проверь понимание:** зачем на диск данных ставить и `prevent_destroy`, и `auto_delete = false` при подключении к ВМ?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Это две разные защиты. `prevent_destroy` не даёт Terraform удалить диск. `auto_delete = false` не даёт облаку удалить диск вместе с ВМ, когда ВМ пересоздаётся. Для secondary_disk это значение и так по умолчанию, но явная запись читается как намерение.
@@ -131,7 +131,7 @@ time: "2 ч"
 1. Что произойдёт, если запустить `terraform plan` без значения для `my_ip_cidr`?
 2. Что произойдёт при `my_ip_cidr = "0.0.0.0/0"`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 1. У переменной нет `default`: Terraform в интерактивном режиме спросит значение, а с флагом `-input=false` (как в CI) упадёт с `No value for required variable`.
@@ -239,7 +239,7 @@ terraform fmt
 1. Сколько ресурсов покажет `plan` в строке `Plan: N to add`, если сеть и подсеть из 7.1 уже созданы?
 2. Появится ли пароль в выводе `plan`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 1. Семь: диск (1), группа безопасности (1), три правила ingress и одно egress (4), ВМ (1).
@@ -407,7 +407,7 @@ Plan: 7 to add, 0 to change, 0 to destroy.
 
 **Предскажи:** сразу после `apply` запустить `terraform plan`. Что он покажет?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `No changes. Your infrastructure matches the configuration.` Код и state совпали (идемпотентность). Если план показывает изменения без правок кода, ищи атрибут, который облако меняет само: повод для `ignore_changes`.
@@ -488,7 +488,7 @@ Id диска, адрес и имя образа у тебя будут друг
 
 **Предскажи:** сработает ли `terraform destroy` на такой конфигурации?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Terraform построит план удаления, дойдёт до `yandex_compute_disk.data` и остановится с ошибкой `Instance cannot be destroyed` (`prevent_destroy`). Это защита, а не поломка.
@@ -572,7 +572,7 @@ grep -c 'DATABASE_URL' terraform.tfstate
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **1. Invalid for_each argument.** Ошибка выглядит так:

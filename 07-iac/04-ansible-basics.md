@@ -34,7 +34,7 @@ Terraform и Ansible делят работу так: Terraform создаёт В
 
 > **Проверь понимание:** зачем Ansible на сервере Python, если он "без агента"?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Модули Ansible это Python-скрипты. Ansible копирует модуль на сервер, там его запускает интерпретатор Python, результат возвращается как JSON. Постоянно работающего процесса нет, но Python на цели должен быть. Для голой машины без Python есть модуль `raw`: он просто гонит команду через SSH.
@@ -62,7 +62,7 @@ all:
 
 > **Проверь понимание:** в инвентаре хост `notes-vm` без `ansible_host`. Куда попытается подключиться Ansible?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Он возьмёт само имя `notes-vm` как DNS-имя. Если его нет в DNS и в `/etc/hosts`, получишь `UNREACHABLE` с `Could not resolve hostname`.
@@ -93,7 +93,7 @@ Ad-hoc это разовая команда без плейбука: `ansible <�
 
 > **Проверь понимание:** чем `ansible all -m command -a "useradd bob"` хуже модуля `user` с `name=bob`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Второй запуск `command` упадёт с ошибкой "user already exists", а модуль `user` увидит, что `bob` есть, и ответит `ok`. Модуль проверяет состояние перед действием, `command` просто выполняет.
@@ -112,7 +112,7 @@ Ad-hoc это разовая команда без плейбука: `ansible <�
 
 > **Проверь понимание:** `--check` показал всё зелёным. Гарантирует ли это, что боевой запуск ничего не сломает?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Задачи `command`/`shell` были пропущены, а шаги, зависящие от их результата, могли считаться по устаревшим данным. `--check` это оценка, а не гарантия.
@@ -145,7 +145,7 @@ multipass exec notes-vm -- bash -c "echo '$(cat ~/.ssh/id_ed25519.pub)' >> ~/.ss
 
 **Предскажи:** сработает ли `sudo pip install ansible` на Ubuntu? Где окажется команда `ansible` после установки в venv?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет: Ubuntu защищает системный Python, pip ответит `externally-managed-environment`. В venv команда лежит в `bin/` окружения и появляется в PATH только после активации (`pipx` сам кладёт ссылку в `~/.local/bin`).
@@ -191,7 +191,7 @@ ansible [core 2.21.4]
 
 **Предскажи:** что покажет `ansible-inventory --graph` для одной группы `notes` с одним хостом?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Дерево: `@all` содержит `@ungrouped:` (пусто) и `@notes:` с `notes-vm`. Группы `all` и `ungrouped` есть всегда.
@@ -259,7 +259,7 @@ notes-vm | SUCCESS => {
 
 **Предскажи:** ты дважды запускаешь `apt` с `name=htop state=present`. Что будет в `changed` в первый раз и во второй?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Первый: `CHANGED`, `"changed": true` (пакет установлен). Второй: `SUCCESS`, `"changed": false` (уже стоит).
@@ -319,7 +319,7 @@ notes-vm | CHANGED | rc=0 >>
 
 **Предскажи:** появится ли файл на сервере после запуска с `--check --diff`? Покажет ли Ansible изменения?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Изменения покажет: `CHANGED` и diff со строками добавления. Файла на сервере не появится: `--check` ничего не пишет.
@@ -377,7 +377,7 @@ notes-vm | CHANGED => {
 
 **Предскажи:** ВМ пересоздали, IP сменился. Что произойдёт с инвентарём, где адрес прописан руками?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Ansible пойдёт на старый адрес: получишь `UNREACHABLE` по таймауту или, хуже, зайдёшь на чужую машину, получившую этот IP. Поэтому адрес берут из `terraform output` при каждом запуске (подробнее в [уроке 7.7](07-terraform-ansible-drift.md)).
@@ -468,7 +468,7 @@ ansible notes -m ansible.builtin.raw -a "command -v python3 || echo no-python"
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **1. Permission denied (publickey).** Текст: `UNREACHABLE! => {"msg": "Failed to connect to the host via ssh: ubuntu@203.0.113.10: Permission denied (publickey)."}`. Ручной `ssh` падает так же, значит проблема в SSH, а не в Ansible. Причины: неверный `remote_user`, неверный `private_key_file`, публичного ключа нет в `~/.ssh/authorized_keys`, права `~/.ssh` шире 700. Исправление: положить нужный ключ и указать верного пользователя в `ansible.cfg` или `ansible_user`.

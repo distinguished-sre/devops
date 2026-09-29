@@ -39,7 +39,7 @@ GitOps (git как единственный источник желаемого 
 
 > **Проверь понимание:** почему модель pull безопаснее для доступа к кластеру, чем push из CI?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 В push у CI лежит kubeconfig с правами на изменение кластера, и утечка секрета CI даёт доступ к проду. В pull права на запись в кластер есть только у агента внутри него, а снаружи нужен лишь доступ на чтение репозитория. 
@@ -63,7 +63,7 @@ Flux v2.9.5 (Flux, CNCF graduated) - набор контроллеров (contro
 
 > **Проверь понимание:** какой контроллер выполнит `helm upgrade`, когда ты изменишь values в `HelmRelease`, и какой заметит новый коммит в git?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Новый коммит заметит source-controller (он опрашивает `GitRepository` раз в `interval`). Затем kustomize-controller применит изменённый `HelmRelease`, а сам upgrade выполнит helm-controller.
@@ -81,7 +81,7 @@ Reconcile (сверка) - это цикл: взять желаемое из git
 
 > **Проверь понимание:** что произойдёт с Deployment, если удалить его YAML из git, а `prune` выключен?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Ничего: Deployment останется в кластере и продолжит работать, но Flux больше им не управляет. Так и появляются "призрачные" ресурсы. С `prune: true` он был бы удалён.
@@ -130,7 +130,7 @@ Argo CD v3.5.3 решает ту же задачу центральным сер
 
 **Предскажи:** сколько подов появится в namespace `flux-system` и что Flux сам закоммитит в репозиторий?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Четыре пода по одному на контроллер: source, kustomize, helm, notification (image-контроллеры не входят в набор по умолчанию). В репозиторий Flux закоммитит свои манифесты в `clusters/kind/flux-system/`: `gotk-components.yaml` и `gotk-sync.yaml`.
@@ -216,7 +216,7 @@ flux-system      main@sha1:3f9c1a2     False      True   stored artifact for rev
 
 **Предскажи:** что покажет `flux get kustomizations` сразу после пуша, если `infrastructure-config` зависит от `infrastructure`, а тот ещё ставит Envoy Gateway?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `infrastructure` будет `Unknown` или `Reconciling` (идёт установка чарта), а `infrastructure-config` останется с сообщением `dependency 'flux-system/infrastructure' is not ready`. Он не применяется, пока зависимость не станет `Ready`.
@@ -371,7 +371,7 @@ infrastructure         main@sha1:8d2e0c4  False      True   Applied revision: ma
 
 **Предскажи:** ты выполнишь `kubectl scale deployment notes -n notes --replicas=10`. Сколько реплик будет через пару минут и почему? А если изменить `replicaCount` в git?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Если включён `driftDetection`, вернётся к значению из values (три): helm-controller заметит расхождение и исправит. Через git реплики станут теми, что записаны в коммите, и в `git log` останется след, кто и когда это решил.
@@ -495,7 +495,7 @@ notes       0.4.0     False      True   Helm install succeeded for release notes
 
 **Предскажи:** что покажет `helm list -A` на кластере, где всё поставил Flux?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Релизы будут (`envoy-gateway`, `external-secrets`, `vault`, `notes`): helm-controller использует Helm внутри. Но их создал Flux, и у каждого есть `HelmRelease` в git.
@@ -567,28 +567,28 @@ kubectl describe helmrelease notes -n notes
 
 Почини командой `bash break/9.3/fix.sh` только после собственной попытки. Разбор сценариев:
 
-<details>
+<details markdown="1">
 <summary>1. GitRepository: authentication required</summary>
 
 Симптом: `flux get sources git` показывает `False` и `authentication required`. Причина: deploy key или токен отозваны, либо репозиторий стал приватным без секрета. Исправление: `flux create secret git ...` или повторный `flux bootstrap github` (он идемпотентный и пересоздаст ключ), затем `flux reconcile source git flux-system`.
 
 </details>
 
-<details>
+<details markdown="1">
 <summary>2. HelmRelease: install retries exhausted</summary>
 
 Симптом: `Helm install failed ... install retries exhausted`, `Ready=False`. Причина в этом сценарии: неверная версия чарта или values. Проверка: `flux logs --kind=HelmRelease --name=notes -n notes`, `helm show values` соответствующего чарта, `kubectl describe pod` (тег образа, ошибки пробы). Исправление: правка в git, затем `flux reconcile helmrelease notes -n notes --reset`, чтобы сбросить счётчик ретраев (после исчерпания он сам не пробует заново).
 
 </details>
 
-<details>
+<details markdown="1">
 <summary>3. kustomization path not found</summary>
 
 Симптом: `kustomization path not found: stat .../apps/notes: no such file or directory`. Причина: каталог переименован или `spec.path` в `apps.yaml` указывает на несуществующий. Проверка: `git ls-tree -r main --name-only` и `kubectl get kustomization apps -n flux-system -o yaml`. Исправление: привести путь и каталог в соответствие и запушить. Зависимые Kustomization при этом остаются в `not ready`.
 
 </details>
 
-<details>
+<details markdown="1">
 <summary>4. Ручной kubectl edit затирается</summary>
 
 Симптом: ты поправил Deployment или ConfigMap руками, и через минуты правка исчезла. Это не поломка, а штатное поведение: git главнее. Проверка: `flux events --for HelmRelease/notes -n notes` покажет `drift detected`. Исправление: вносить правку в git; если нужна временная ручная работа, `flux suspend kustomization apps`, а после `flux resume kustomization apps`.

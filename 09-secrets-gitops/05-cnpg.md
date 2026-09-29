@@ -35,7 +35,7 @@ CloudNativePG (CNPG) не использует StatefulSet. Он сам упра
 
 > **Проверь понимание:** чем оператор отличается от Helm-чарта, который просто рисует StatefulSet?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Helm один раз рендерит манифесты и уходит. Оператор живёт в кластере постоянно: замечает смерть primary, повышает реплику, перенастраивает Service, запускает бэкапы по расписанию. Helm описывает начальное состояние, оператор поддерживает и меняет его в ходе жизни.
@@ -58,7 +58,7 @@ Helm один раз рендерит манифесты и уходит. Опе
 
 > **Проверь понимание:** почему приложение должно ходить в `notes-db-rw`, а не в `notes-db-1`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Имя пода привязано к конкретному инстансу, а primary может переехать на `notes-db-2`. Service `notes-db-rw` всегда указывает на текущий primary, оператор переставляет селектор сам.
@@ -75,7 +75,7 @@ CNPG использует Barman: периодически делает полн
 
 > **Проверь понимание:** что лучше для восстановления после случайного `DROP TABLE` в 14:03: ночной `pg_dump` или base backup плюс WAL?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Base backup плюс WAL: восстанавливаешь новый кластер на 14:02:59 (PITR). С ночным дампом потеряешь всё, что произошло после ночи.
@@ -102,7 +102,7 @@ Base backup плюс WAL: восстанавливаешь новый класт
 
 **Предскажи:** сколько новых CRD появится после установки оператора: 0, 1 или больше? И в каком namespace они видны?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Больше одного: `clusters`, `backups`, `scheduledbackups`, `poolers` и другие. CRD кластерные, namespace у типа нет, у объектов есть.
@@ -211,7 +211,7 @@ scheduledbackups.postgresql.cnpg.io        2026-09-29T10:12:04Z
 
 **Предскажи:** сколько подов появится при `instances: 2` и чем они отличаются в `kubectl get pods -L cnpg.io/instanceRole`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Два: `notes-db-1` с ролью `primary` и `notes-db-2` с ролью `replica`. Также сначала появится короткоживущий Job `notes-db-1-initdb`.
@@ -327,7 +327,7 @@ notes-db-rw   ClusterIP   10.96.201.33   <none>   5432/TCP   2m
 
 **Предскажи:** после `kubectl delete pod notes-db-1` какой под станет primary и сменится ли адрес `notes-db-rw`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Primary станет `notes-db-2`. ClusterIP сервиса `notes-db-rw` останется прежним, изменится только endpoint за ним. Удалённый `notes-db-1` вернётся как реплика.
@@ -378,7 +378,7 @@ psql: error: connection to server at "notes-db-rw" (10.96.201.33), port 5432 fai
 
 **Предскажи:** можно ли восстановить в кластер с тем же именем `notes-db`, пока старый жив?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет: имена конфликтуют, поды и PVC уже существуют. Восстанавливаем в новый `Cluster` с другим именем, например `notes-db-restore`, проверяем данные и потом решаем, что с ним делать.
@@ -478,7 +478,7 @@ cluster.postgresql.cnpg.io/notes-db-restore condition met
 
 **Предскажи:** что произойдёт с приложением, если сначала удалить StatefulSet, а потом делать дамп?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Дамп сделать будет не из чего, если удалён и PVC (у StatefulSet PVC остаётся, но проще ошибиться). Порядок всегда: дамп, восстановление, проверка, переключение, и только потом удаление старого.
@@ -571,7 +571,7 @@ kubectl -n notes get endpoints notes-db-rw
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 1. Запись в реплику: `DATABASE_URL` указывает на `notes-db-ro` или `notes-db-2`. Проверь `psql -c "select pg_is_in_recovery()"` через этот хост, `t` значит реплика. Исправь хост на `notes-db-rw` в `externalsecret.yaml`, закоммить, перезапусти Deployment.

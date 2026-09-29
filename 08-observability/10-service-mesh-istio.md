@@ -36,7 +36,7 @@ time: "2.5 ч"
 
 > **Проверь понимание:** назови две вещи, которые mesh делает без изменения кода приложения, и одну, которую не сделает.
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Делает: шифрует трафик между подами (mTLS) и ограничивает, кто с кем может общаться (авторизация по identity); ещё собирает метрики запросов. Не сделает: не исправит ошибку в бизнес-логике, не защитит от SQL-инъекции и не заменит проверку прав пользователя внутри приложения.
@@ -56,7 +56,7 @@ time: "2.5 ч"
 
 > **Проверь понимание:** политика запрещает `DELETE /notes/1`, но waypoint не создан. Сработает ли она?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Метод и путь это L7, а ztunnel понимает только L4. Политика с L7-условием, привязанная к подам без waypoint, не будет обеспечена, поэтому правила про методы и пути пишут для waypoint. Это частая причина «политика есть, а трафик идёт».
@@ -79,7 +79,7 @@ time: "2.5 ч"
 
 > **Проверь понимание:** в ns есть одна политика ALLOW для сервиса A. Сервис B, который раньше свободно ходил в A, перестал работать. Почему и как проверить?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Наличие ALLOW-политики переводит нагрузку в режим «только перечисленное». B не попал в список (по identity или namespace). Проверка: `kubectl get authorizationpolicy -A`, затем сравнить identity клиента (`kubectl get pod ... -o jsonpath` на serviceAccountName) с `from.source` политики.
@@ -100,7 +100,7 @@ time: "2.5 ч"
 
 **Предскажи:** сколько подов `ztunnel` будет в кластере kind с одним узлом? Будет ли в ns `notes` после установки хоть один новый под?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 По одному `ztunnel` и `istio-cni-node` на каждый узел, значит по одному на узле kind. В ns `notes` новых подов нет: Istio ambient ничего не добавляет в поды и их не перезапускает.
@@ -159,7 +159,7 @@ ztunnel-9wq5d             1/1     Running   0          40s
 
 **Предскажи:** изменится ли число контейнеров в поде `notes` после включения в mesh? Если из ns без mesh отправить запрос на `notes:8080`, он пройдёт?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Число контейнеров не изменится: прокси не внутри пода, а на узле. Запрос из ns без mesh пройдёт: режим по умолчанию разрешает и mTLS, и обычный трафик (в Istio это PERMISSIVE). Именно поэтому можно включать mesh постепенно.
@@ -246,7 +246,7 @@ notes     notes-7d9f8b6c5-x2k4p 10.244.0.15 notes-control-plane None     HBONE
 
 **Предскажи:** после применения политики `ALLOW` на `notes` что получит `curl-bad`? А что увидит внешний пользователь через `https://notes.lab`, если `envoy-gateway-system` не перечислить в политике?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `curl-bad` получит отказ на уровне соединения (`curl: (56) Recv failure: Connection reset by peer` или `(52) Empty reply`). Внешний пользователь без строки про `envoy-gateway-system` получит 503 от Envoy Gateway: `upstream connect error or disconnect/reset before headers. reset reason: connection termination`. Политика ALLOW отсекает всё, что не перечислено.
@@ -322,7 +322,7 @@ curl -sk --resolve notes.lab:443:127.0.0.1 -o /dev/null -w '%{http_code}\n' http
 
 **Предскажи:** демонстрационный `/slow?sec=5` при таймауте 2 секунды на waypoint. Какой статус вернётся клиенту и сколько времени займёт запрос?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Около 2 секунд и статус 504 (Gateway Timeout): waypoint сам обрывает ожидание. Без waypoint запрос длился бы все 5 секунд и вернул 200.
@@ -412,7 +412,7 @@ real    0m2.1s
 
 **Предскажи:** после `istioctl uninstall` метки `istio.io/dataplane-mode` на namespace останутся. Что произойдёт с трафиком?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Трафик пойдёт как обычно: метка сама по себе ничего не делает без ztunnel. Но AuthorizationPolicy и Gateway `waypoint` остаются как объекты; их нужно удалить явно, иначе кластер захламлён. Метки тоже убирай.
@@ -509,7 +509,7 @@ kubectl -n istio-system logs ds/ztunnel --tail=50 | grep -i deny
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 1. Политика без `envoy-gateway-system` (или с неверным identity): поправь `from.source` в `k8s/mesh/authz-policy.yaml`, `kubectl apply`. Идентификатор строится как `cluster.local/ns/<ns>/sa/<sa>`, а вход проверяй по namespace. Проверка: `curl -sk --resolve notes.lab:443:127.0.0.1 https://notes.lab/healthz` отдаёт 200.

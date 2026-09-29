@@ -38,7 +38,7 @@ ConfigMap (карта конфигурации) это объект с пара�
 
 > **Проверь понимание:** ты изменил значение `LOG_LEVEL` в ConfigMap, подключённом через `envFrom`. Поды работают. Какой уровень логов у них?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Прежний. Переменные окружения читаются при старте контейнера. Чтобы применить новое значение, поды нужно пересоздать: `kubectl rollout restart deployment/notes`.
@@ -61,7 +61,7 @@ Secret устроен как ConfigMap, но предназначен для п�
 
 > **Проверь понимание:** коллега прислал в чат `cGFzc3dvcmQ=` и говорит, что это надёжно зашифровано. Что ты ответишь?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Это base64: `echo cGFzc3dvcmQ= | base64 -d` даёт `password`. Никакого ключа не нужно, поэтому это не шифрование. Base64 нужен, чтобы в YAML помещались произвольные байты.
@@ -80,7 +80,7 @@ Kubelet собирает окружение контейнера перед за
 
 > **Проверь понимание:** под в статусе `CreateContainerConfigError`. Ты смотришь `kubectl logs`, и там пусто. Почему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Контейнер ни разу не запускался, поэтому логов нет. Причину нужно искать в `kubectl describe pod` (раздел Events) или в `kubectl get events`.
@@ -104,7 +104,7 @@ kubectl -n notes get pods
 
 **Предскажи:** ты подключишь один и тот же ConfigMap двумя способами и потом поменяешь в нём значение. Что изменится в поде: переменная, файл, оба или ничего?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Файл изменится (не сразу, kubelet синхронизирует тома периодически, до минуты-полутора). Переменная останется прежней до пересоздания пода.
@@ -194,7 +194,7 @@ file: debug
 
 **Предскажи:** что покажет `kubectl get secret -o yaml` для значения, которое ты задал как `CHANGE_ME`: сам текст, случайную строку или что-то, что нельзя расшифровать без ключа?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Строку в base64 (`Q0hBTkdFX01F`), которая декодируется без всякого ключа.
@@ -261,7 +261,7 @@ Q0hBTkdFX01F
 
 **Предскажи:** после переключения на `STORE=postgres` ты создашь заметку и удалишь все поды `notes`. Останется ли заметка?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Да. Данные теперь хранятся в PostgreSQL на PVC, а не в `emptyDir` пода.
@@ -439,7 +439,7 @@ kubectl -n notes exec deploy/notes -- printenv | sort | grep -E 'STORE|LOG_LEVEL
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор всех сценариев</summary>
 
 **Сценарий 1: `CreateContainerConfigError`.**

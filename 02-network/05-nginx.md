@@ -37,7 +37,7 @@ time: "2 ч"
 
 > **Проверь понимание:** почему после `nginx -s reload` уже идущий долгий запрос не обрывается?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Master запускает новых worker с новым конфигом и просит старых завершиться после обработки текущих запросов. Обрыва нет, пока старый worker не закончит свои соединения.
@@ -59,7 +59,7 @@ Master запускает новых worker с новым конфигом и п
 
 > **Проверь понимание:** зачем приложению `X-Forwarded-Proto`, если оно всегда слушает обычный HTTP?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Между nginx и приложением всегда HTTP, а клиент мог прийти по HTTPS (урок 2.6). Приложение по этому заголовку узнаёт исходную схему и строит правильные ссылки и редиректы.
@@ -79,7 +79,7 @@ Master запускает новых worker с новым конфигом и п
 
 > **Проверь понимание:** есть `location /` и `location = /healthz`. В какой попадёт `GET /healthz` и в какой `GET /healthz/`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `/healthz` попадёт в точный `= /healthz`. `/healthz/` не равен точному пути, поэтому попадёт в `location /`.
@@ -100,7 +100,7 @@ Master запускает новых worker с новым конфигом и п
 
 > **Проверь понимание:** приложение остановлено. Какой код увидит клиент и какая строка появится в `error.log`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 502. В `error.log`: `connect() failed (111: Connection refused) while connecting to upstream`. Порт закрыт, ядро сразу отвечает отказом (урок 2.2).
@@ -117,7 +117,7 @@ Master запускает новых worker с новым конфигом и п
 
 **Предскажи:** сколько процессов nginx запустится и какой порт они займут? Что вернёт `curl -sI http://127.0.0.1/`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Один master от root и несколько worker от `www-data` (по числу ядер), порт 80. `curl -sI` вернёт `HTTP/1.1 200 OK` и заголовок `Server: nginx/...`.
@@ -180,7 +180,7 @@ lrwxrwxrwx 1 root root 34 ... default -> /etc/nginx/sites-available/default
 
 **Предскажи:** что покажет `curl http://notes.lab/headers`: адрес клиента 127.0.0.1 в `X-Real-Ip` или пустое значение? Почему `Host` будет `notes.lab`, а не `127.0.0.1:8080`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `X-Real-Ip: 127.0.0.1`, если ты запрашиваешь с того же сервера (nginx видит клиента 127.0.0.1). Приложение получит заголовки из `proxy_set_header`. `Host` будет `notes.lab`, потому что мы прокидываем `$host` (исходное имя из запроса), а не подставляем адрес upstream.
@@ -267,7 +267,7 @@ Notes service vdev
 
 **Предскажи:** сколько строк добавится в `notes-access.log` после трёх запросов `curl`? Какой код будет у `GET /nope`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Три строки, по одной на запрос. `/nope` даст 404: nginx передаёт запрос приложению, а приложение отвечает 404 (урок 2.4). Код пришёл от приложения, а не от nginx.
@@ -320,7 +320,7 @@ Notes service vdev
 
 **Предскажи:** какой код вернёт nginx, если остановить `notes.service`? А если приложение работает, но `/slow?sec=40` при `proxy_read_timeout 30s`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Остановленное приложение: 502 сразу (`Connection refused`). `/slow?sec=40`: 504 через 30 секунд (`upstream timed out`). Разница во времени ответа тоже диагностический признак.
@@ -381,7 +381,7 @@ slept 5
 
 **Предскажи:** приложение слушает `127.0.0.1:8080`, а nginx на `0.0.0.0:80`. Достучится ли внешний клиент до `:8080` напрямую?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. `127.0.0.1` доступен только с самой машины (урок 2.1). Снаружи открыт только 80, и запрос идёт через nginx. Порт 8080 закрывается не файрволом, а привязкой к loopback.
@@ -473,7 +473,7 @@ sudo bash break.sh 1     # или 2, 3, 4, random
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор четырёх сценариев</summary>
 
 **Сценарий 1. Синтаксическая ошибка.** `nginx -t` говорит `unknown directive` или `unexpected "}"` с номером строки. Исправь строку, повтори `nginx -t`, затем `reload`. Пока `-t` не прошёл, `reload` не применит конфиг, сайт продолжает работать по прошлому.

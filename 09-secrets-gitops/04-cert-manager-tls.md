@@ -40,7 +40,7 @@ cert-manager добавляет несколько CRD. Запомни четы�
 
 > **Проверь понимание:** чем `Certificate` отличается от Secret, в который он попадает, и что из них ты правишь в git?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `Certificate` это желание: имена, срок, издатель. Secret это результат, его создаёт и обновляет cert-manager. В git хранится только `Certificate`. Секрет с ключом в git не кладут, а вручную не правят: он перезапишется при следующем продлении.
@@ -67,7 +67,7 @@ cert-manager добавляет несколько CRD. Запомни четы�
 
 > **Проверь понимание:** сертификат продлён, `kubectl get certificate` показывает `READY True`, а клиенты видят истёкший. Где искать?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Secret обновился, но сервер отдаёт старый сертификат из памяти. Проверь `openssl s_client -connect ... | openssl x509 -noout -dates` на самом пути клиента. Затем убедись, что listener ссылается на верный Secret, и перезагрузи компонент, который не умеет перечитывать файлы.
@@ -116,7 +116,7 @@ spec:
 
 **Предскажи:** сколько подов появится в namespace `cert-manager` и какие у них роли? Что произойдёт, если не включить установку CRD?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Три пода: `cert-manager` (основной контроллер), `cert-manager-cainjector` (вставляет CA в webhooks и CRD) и `cert-manager-webhook` (проверяет ресурсы при создании). Без CRD чарт поставится, но `kubectl apply` для `Certificate` даст ошибку, что такого типа ресурса нет.
@@ -205,7 +205,7 @@ cert-manager-webhook-5b7d6c8f4-t9v3r       1/1     Running   0          70s
 
 **Предскажи:** сколько `ClusterIssuer` и сколько Secret в namespace `cert-manager` ты увидишь после применения? Почему Secret с корневым сертификатом лежит именно в `cert-manager`, а не в `notes`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Два `ClusterIssuer` (`selfsigned` и `notes-ca`) и Secret `notes-ca` с корневым ключом. Для `ClusterIssuer` cert-manager ищет Secret в своём «cluster resource namespace», по умолчанию это `cert-manager`. Для `Issuer` (в одном namespace) Secret лежал бы рядом с ним.
@@ -290,7 +290,7 @@ secret/notes-ca    kubernetes.io/tls   3      13s
 
 **Предскажи:** cert-manager найдёт уже существующий Secret `notes-tls`, созданный руками. Перезапишет он его или откажется? От чего это зависит?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Секрет, созданный вручную, cert-manager не «усыновляет» молча: он видит чужой Secret без своих аннотаций и может вести себя непредсказуемо (ошибки о несоответствии, повторные выпуски). Правильный порядок: сначала `kubectl delete secret notes-tls`, потом применять `Certificate`. Так же было с ESO в 9.2.
@@ -444,7 +444,7 @@ echo | openssl s_client -connect notes.lab:443 -servername notes.lab 2>/dev/null
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **Сценарий 1. Certificate не Ready, `Issuer not found`.** В `describe certificate` видно: `Issuing certificate as Secret does not exist`, а `CertificateRequest` в состоянии `Pending` с сообщением `Referenced "ClusterIssuer" not found: clusterissuer.cert-manager.io "notes-ca-x" not found`. Причина: опечатка в `issuerRef.name` или неверный `kind` (`Issuer` вместо `ClusterIssuer`). Исправление: поправь `issuerRef` в git, дождись Flux, `kubectl get certificate` покажет `True`.

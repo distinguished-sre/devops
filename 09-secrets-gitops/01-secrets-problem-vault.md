@@ -42,7 +42,7 @@ time: "2 ч"
 
 > **Проверь понимание:** ты удалил `.env` из репозитория коммитом `remove secrets`. Секрет безопасен?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Файл остался в истории, любой клон репозитория содержит его. Правильно: считать секрет скомпрометированным, сменить его (ротация, rotation) и только потом чистить историю. Ротация обязательна, чистка истории нет.
@@ -94,7 +94,7 @@ path "secret/metadata/notes/*" {
 
 > **Проверь понимание:** политика разрешает `read` на `secret/notes/*`, а `vault kv get secret/notes/db` отвечает `permission denied`. Почему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 В KV v2 путь данных `secret/data/notes/db`. Политику надо писать с `data` в середине.
@@ -115,7 +115,7 @@ SOPS с age шифрует значения в YAML, файл коммитят �
 
 **Предскажи:** запустишь контейнер с `-e DB_PASSWORD=...` и потом удалишь `.env` из git. Найдёшь ли ты пароль (а) в `docker inspect`, (б) в `docker history` образа, (в) в `git log` после удаления файла?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 (а) да, в поле `Env`. (в) да, в истории. (б) зависит от образа: если пароль передан только через `-e`, в слоях его нет; если он попал в `ENV`, `ARG` или `COPY`, то есть.
@@ -173,7 +173,7 @@ DB_PASSWORD=CHANGE_ME_2
 
 **Предскажи:** токен с политикой `notes-read` попробует прочитать `secret/notes/db` и `secret/billing/card`, а потом записать в `secret/notes/db`. Какие из трёх операций пройдут?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Пройдёт только чтение `secret/notes/db`. Чужой путь не описан в политике, а запись не входит в `capabilities`.
@@ -256,7 +256,7 @@ Code: 403. Errors:
 
 **Предскажи:** после `docker restart` что покажет `vault status` и получится ли прочитать секрет? Останутся ли данные на диске?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `Sealed true`, чтение вернёт `Vault is sealed`. Данные на диске целы, но зашифрованы: нужно снова ввести три доли ключа.
@@ -359,7 +359,7 @@ Error reading secret/data/notes/db: ... Vault is sealed
 
 **Предскажи:** после `helm install` под `vault-0` будет `Running`, но не `Ready`. Почему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Readiness-проба Vault считает готовым только распечатанный сервер. Пока не выполнен `unseal`, под `0/1 Running`. Это нормально.
@@ -519,7 +519,7 @@ history | grep -i token
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **1. `Vault is sealed` после рестарта.** `vault status` показывает `Sealed true`, под `0/1 Running`. Причина: рестарт запечатывает хранилище. Исправление: запустить `~/notes/scripts/seed-vault.sh` (он распечатает Vault ключом из `~/.notes-secrets/vault-init.json`) или выполнить `vault operator unseal <ключ>` вручную нужное число раз. Профилактика: auto-unseal через KMS и алерт на `vault_core_unsealed == 0`.

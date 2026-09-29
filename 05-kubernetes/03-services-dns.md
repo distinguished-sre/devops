@@ -45,7 +45,7 @@ Service (сервис) это объект API, у которого есть:
 
 > **Проверь понимание:** почему нельзя прописать в конфиге клиента IP пода `notes-abc12`, если под работает уже неделю?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Под может исчезнуть в любой момент (обновление, падение, эвакуация узла), а новый получит другой IP. Долгоживущего адреса у пода нет, он есть у Service.
@@ -70,7 +70,7 @@ selector:                          metadata.labels:
 
 > **Проверь понимание:** ты создал сервис, а `kubectl get endpoints notes` показывает `<none>`. Какие две причины проверишь первыми?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 1. Метки в `selector` сервиса не совпадают с метками подов (опечатка, другой ключ или значение). Сравни `kubectl get svc notes -o yaml` и `kubectl get pods --show-labels`.
@@ -86,7 +86,7 @@ selector:                          metadata.labels:
 
 > **Проверь понимание:** endpoints у сервиса заполнены тремя адресами, но `curl` даёт `Connection refused`. Что проверишь?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `targetPort` сервиса против порта, который реально слушает приложение в поде. Проверить: `kubectl get endpoints notes` покажет адреса вместе с портом (например `10.244.1.5:8081`), сравни его с `containerPort` и с тем, что слушает процесс (`kubectl exec ... -- ss -ltn`).
@@ -113,7 +113,7 @@ ClusterIP не принадлежит ни одному сетевому инт�
 
 > **Проверь понимание:** почему `ping <ClusterIP>` не отвечает, хотя `curl <ClusterIP>:8080` работает?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 У ClusterIP нет сетевого интерфейса, который отвечал бы на ICMP. Есть только правила DNAT для портов сервиса. Проверять доступность нужно тем протоколом и портом, которые сервис обслуживает.
@@ -148,7 +148,7 @@ options ndots:5
 
 > **Проверь понимание:** из пода в namespace `default` нужно обратиться к сервису `notes` в namespace `notes`. Какое имя напишешь?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `notes.notes` (или полное `notes.notes.svc.cluster.local`). Просто `notes` не сработает: резолвер будет искать `notes.default.svc.cluster.local`.
@@ -163,7 +163,7 @@ options ndots:5
 
 **Предскажи:** сколько адресов будет в endpoints, если реплик 3? Что покажет `kubectl get endpoints notes` до создания сервиса?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Три адреса `IP:8080`. До создания сервиса объекта `notes` в endpoints нет: `Error from server (NotFound): endpoints "notes" not found`.
@@ -234,7 +234,7 @@ notes   10.244.1.4:8080,10.244.1.5:8080,10.244.2.3:8080   3s
 
 **Предскажи:** какие из имён сработают из временного пода в namespace `notes`: `notes`, `notes.notes`, `notes.notes.svc.cluster.local`, `notes.default`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Первые три сработают. `notes.default` попросит сервис `notes` в namespace `default`, которого нет: `NXDOMAIN`.
@@ -303,7 +303,7 @@ options ndots:5
 
 **Предскажи:** сколько адресов будет в endpoints через секунду после `kubectl delete pod`? Изменится ли `CLUSTER-IP`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Обычно снова три: удалённый под выпадает из списка, ReplicaSet создаёт новый, тот попадает в список после старта контейнера. Промежуточно на секунду-две может быть два адреса. `CLUSTER-IP` не изменится никогда, пока жив сервис.
@@ -350,7 +350,7 @@ notes   10.244.1.5:8080,10.244.2.3:8080,10.244.2.6:8080   5m
 
 **Предскажи:** к чему подключается `kubectl port-forward svc/notes`: к сервису целиком или к одному поду?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 К одному конкретному поду, который выбирается из endpoints в момент запуска команды. Балансировки по трём репликам порт-форвард не даёт, а при пересоздании этого пода соединение оборвётся.
@@ -438,7 +438,7 @@ kubectl -n kube-system get pods -l k8s-app=kube-dns
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **1. Selector не совпал с labels.** Симптом: `kubectl get endpoints notes` показывает `<none>`, `curl` даёт `Connection refused` (на ClusterIP без endpoints правила kube-proxy отвечают отказом). Причина: в `selector` другое значение метки (например, `app.kubernetes.io/name: note`). Починка: привести `selector` к меткам подов и применить `kubectl apply -f k8s/base/20-service.yaml`. Способ отладки: `describe svc` показывает `Selector` и `Endpoints: <none>`.

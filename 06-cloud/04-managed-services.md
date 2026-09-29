@@ -45,7 +45,7 @@ Managed PostgreSQL (управляемая PostgreSQL) это обычный Pos
 
 > **Проверь понимание:** ты включил HA-кластер из двух хостов. Кто-то выполнил `DROP TABLE notes`. Спасёт ли реплика?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Реплика получает те же изменения, и `DROP TABLE` применится на ней тоже. HA защищает от падения хоста, а не от человеческой ошибки. От ошибки спасает PITR или бэкап: восстанавливаешь кластер на момент за минуту до `DROP`.
@@ -74,7 +74,7 @@ Managed-кластер живёт в сети провайдера. Два сп�
 
 > **Проверь понимание:** чем `verify-full` защищает лучше, чем `require`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `require` шифрует канал, но принимает любой сертификат. Атакующий на пути (MITM) подставит свой сертификат, и ты отдашь ему пароль. `verify-full` проверяет цепочку до доверенного CA и то, что имя в сертификате совпадает с хостом, к которому ты подключался.
@@ -126,7 +126,7 @@ Managed Kubernetes (Yandex Managed Service for Kubernetes, AWS EKS): прова�
 
 **Предскажи:** после команды `create` можно сразу подключаться?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Команда запускает долгую операцию: создание хоста и диска занимает минуты. Пока статус не `RUNNING`, подключаться нельзя.
@@ -206,7 +206,7 @@ health: ALIVE
 
 **Предскажи:** что произойдёт при `sslmode=verify-full` без корневого сертификата? А если подключаться по IP хоста, а не по FQDN?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Без сертификата: `root certificate file "..." does not exist`. По IP: проверка имени провалится, потому что в сертификате записан FQDN, а не адрес.
@@ -283,7 +283,7 @@ notAfter=Jun 20 12:00:00 2033 GMT
 
 **Предскажи:** новая заметка через приложение после переноса получит корректный `id`, если дамп сделан полным `pg_dump`? А если просто выгрузить строки с явными `id`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 С полным `pg_dump` да: он переносит и значение последовательности (sequence) через `setval`. Выгрузка строк оставит последовательность на 1, и первый `INSERT` упадёт с `duplicate key value violates unique constraint "notes_pkey"`.
@@ -356,7 +356,7 @@ psql "host=$PGHOST_NOTES port=6432 dbname=notes user=notes sslmode=verify-full s
 
 **Предскажи:** сколько кластеров будет после восстановления и куда указывает старый `DATABASE_URL`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Два: старый остаётся, появляется новый со своим FQDN. Старый `DATABASE_URL` по-прежнему указывает на старый кластер, пока не сменишь хост.
@@ -405,7 +405,7 @@ status: RUNNING
 
 **Предскажи:** приложение читает `DATABASE_URL` из `.env`. Хватит поменять только эту строку?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. Контейнер должен видеть файл корневого сертификата, иначе `verify-full` в libpq (внутри `psycopg`) упадёт. Файл монтируют в контейнер, путь указывают в `sslrootcert`.
@@ -553,7 +553,7 @@ psql "host=$PGHOST_NOTES port=6432 dbname=notes user=notes sslmode=verify-full s
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор всех сценариев</summary>
 
 **Сценарий 1. `no pg_hba.conf entry ... no encryption` или `SSL is required`.**

@@ -38,7 +38,7 @@ time: "2 ч"
 
 > **Проверь понимание:** какой компонент подскажет, что у Deployment 3 желаемых реплики, а доступна одна: cAdvisor, node-exporter или kube-state-metrics?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 kube-state-metrics: метрики `kube_deployment_spec_replicas` и `kube_deployment_status_replicas_available`. cAdvisor и node-exporter измеряют потребление ресурсов, а не состояние объектов.
@@ -59,7 +59,7 @@ Prometheus Operator добавляет в кластер новые типы о�
 
 > **Проверь понимание:** в Service порт объявлен как `port: 8080` без `name`. Можно ли в ServiceMonitor написать `port: 8080`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. В `endpoints[].port` указывается имя порта. Поле `targetPort` принимает число, но лучше дать порту имя (`name: http`) в Service и ссылаться на него. Без имени оператор не сможет сопоставить endpoint, и target не появится.
@@ -74,7 +74,7 @@ Prometheus Operator добавляет в кластер новые типы о�
 
 > **Проверь понимание:** алерт `KubePodCrashLooping` сработал, но метрики самого приложения пропали. Какой из двух источников данных для этого алерта жив, а какой нет?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Алерт строится на метриках kube-state-metrics (`kube_pod_container_status_restarts_total`), они живут независимо от `/metrics` приложения. Приложение в CrashLoop не отвечает, поэтому его собственные метрики пропали, а состояние пода kube-state-metrics видит по-прежнему.
@@ -112,7 +112,7 @@ notes   notes           4               2026-09-29 09:12:44.51 +0300 MSK        
 
 **Предскажи:** сколько подов будет в namespace `monitoring` после установки и какой из них DaemonSet?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Обычно 6-7: оператор, Prometheus (StatefulSet), Alertmanager (StatefulSet), Grafana, kube-state-metrics и node-exporter (по одному на узел, это DaemonSet). При одном узле kind получится 6 подов.
@@ -242,7 +242,7 @@ servicemonitors.monitoring.coreos.com       2026-09-29T07:20:11Z
 
 **Предскажи:** если создать ServiceMonitor без label `release: kps`, появится ли цель в `/targets`? Что покажет `kubectl get servicemonitor`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Цели не будет. `kubectl get servicemonitor -n notes` покажет объект как ни в чём не бывало, ошибок нет: Prometheus просто не выбирает его своим `serviceMonitorSelector` (по умолчанию требуется `release: kps`).
@@ -342,7 +342,7 @@ notes   6s
 
 **Предскажи:** ты добавишь правило и в Prometheus UI на вкладке Alerts оно появится через сколько: мгновенно, несколько секунд или после рестарта пода? Почему?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Через несколько секунд, рестарт не нужен. Оператор следит за объектами `PrometheusRule`, сам обновляет ConfigMap с правилами, а sidecar `config-reloader` в поде Prometheus перечитывает их.
@@ -425,7 +425,7 @@ notes   5s
 
 **Предскажи:** какие три ресурса появятся в namespace `notes` после `helm upgrade` с включёнными метриками, которых там не было раньше?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `ServiceMonitor/notes`, `PrometheusRule/notes` и (косвенно) новая ревизия релиза Helm. Deployment и Service не изменятся, кроме имени порта в Service.
@@ -525,7 +525,7 @@ kubectl logs -n monitoring deploy/kps-operator --tail=30
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор сценариев</summary>
 
 **Сценарий 1: ServiceMonitor не находится.** Селектор Prometheus `{"matchLabels":{"release":"kps"}}`, а у объекта label `release` нет или в нём другое значение. Исправление: вернуть `release: kps` (значение `metrics.serviceMonitor.release`) и сделать `helm upgrade`. Альтернатива на стороне стека: `serviceMonitorSelectorNilUsesHelmValues: false`, тогда Prometheus выбирает все ServiceMonitor, но это ослабляет изоляцию.

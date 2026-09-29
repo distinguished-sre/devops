@@ -42,7 +42,7 @@ time: "2 ч"
 
 > **Проверь понимание:** как в GitLab CI выразить то, что в Actions делает `needs: lint`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Два способа. Обычный: положить jobs в разные `stages`, тогда этап `test` начнётся только после успеха всех jobs этапа `lint`. Точный: ключ `needs: [lint]` в job, тогда она стартует сразу после `lint`, не дожидаясь остальных jobs этапа.
@@ -61,7 +61,7 @@ time: "2 ч"
 
 > **Проверь понимание:** в конвейере две job без `stage:`, и `stages:` не задан. Сколько этапов и в каком порядке они пойдут?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Обе job попадут в этап `test` по умолчанию и пойдут параллельно, если раннеров хватает. Список этапов по умолчанию: `.pre`, `build`, `test`, `deploy`, `.post`. Поэтому явное `stages:` в проекте лучше писать: читателю сразу видно порядок.
@@ -76,7 +76,7 @@ Jenkins старше GitHub Actions и GitLab CI на десять с лишни
 
 > **Проверь понимание:** почему `Jenkinsfile` в репозитории лучше, чем job, настроенная кликами в веб-интерфейсе?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Файл версионируется вместе с кодом: видно кто и когда менял конвейер, работают Pull Request и ревью, старую ветку можно собрать старым конвейером, при потере сервера конвейер не пропадает. Клики в UI живут только в `JENKINS_HOME`.
@@ -97,7 +97,7 @@ GitHub Actions удобен там, где код на GitHub. GitLab CI вст�
 
 **Предскажи:** ты добавишь job `lint` в этап `lint` и `test` в этап `test`. Что произойдёт с `test`, если `lint` упадёт из-за замечания ruff? Запустится ли `test` вообще?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Не запустится. Этап `test` стартует только после успеха всех jobs предыдущего этапа. Pipeline покажет `lint` красным, а `test` серым (не запускался).
@@ -195,7 +195,7 @@ Job succeeded
 
 **Предскажи:** ты добавишь в job `lint` строку `tags: [docker]`, а раннер зарегистрируешь без тегов и без «run untagged jobs». Что покажет pipeline: зелёный, красный или pending?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Pending. Job требует раннер с тегом `docker`, такого нет, ошибки нет, job просто ждёт. В интерфейсе: `This job is stuck because you don't have any active runners online with any of these tags assigned to them: docker`.
@@ -273,7 +273,7 @@ notes-runner-1  Executor=docker Token=glrt-*** URL=https://gitlab.com
 
 **Предскажи:** ты запустишь стандартный образ Jenkins, смонтируешь сокет Docker и попробуешь `agent { docker {...} }`. Сработает ли?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Нет. В образе Jenkins нет клиента `docker`, а плагина Docker Pipeline может не быть. Сборка упадёт с `docker: not found`. Поэтому делаем свой образ: Jenkins плюс клиент Docker плюс плагины.
@@ -385,7 +385,7 @@ Finished: SUCCESS
 
 **Предскажи:** в Pull Request добавляются только `.gitlab-ci.yml` и `Jenkinsfile`, код не меняется. Запустится ли GitHub Actions и каким будет результат?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Запустится (триггер `pull_request` срабатывает на любой PR) и будет зелёным: `ruff` и `unittest` те же, а новые файлы Python не содержат. GitHub не читает `.gitlab-ci.yml` и `Jenkinsfile`, они просто лежат в репозитории.
@@ -465,7 +465,7 @@ Jenkinsfile:...:                sh 'python -m unittest -v'
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **1. Раннер без тега.** В job стоит `tags: [docker]`, а у раннера тега нет и «Run untagged jobs» выключено. Симптом: `This job is stuck because you don't have any active runners online with any of these tags assigned to them: docker`. Починка: в настройках раннера добавить тег `docker` (или убрать `tags` из job, если раннер один). Урок: pending без ошибки означает «нет подходящего исполнителя», а не «сломан код».

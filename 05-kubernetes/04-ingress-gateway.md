@@ -31,7 +31,7 @@ Pod и ClusterIP недоступны снаружи. Есть три спосо
 
 > **Проверь понимание:** ты создал Ingress, `kubectl get ingress` показывает его, а `curl` не отвечает. Что первым делом проверишь?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Есть ли в кластере Ingress-контроллер и подходит ли `ingressClassName`. Объект Ingress сам по себе трафик не пропускает, его должен подхватить контроллер. Признак: пустая колонка ADDRESS.
@@ -66,7 +66,7 @@ Gateway API сам по себе только набор CRD (Custom Resource De
 
 > **Проверь понимание:** почему для kind порты Service Envoy нужно закрепить, а в облаке не нужно?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 kind пробросил на хост только конкретные порты узла (30080 и 30443). NodePort по умолчанию случайный из диапазона 30000-32767 и не совпал бы с пробросом. В облаке балансировщик получает свой адрес и порты 80 и 443.
@@ -87,7 +87,7 @@ kind пробросил на хост только конкретные порт
 
 **Предскажи:** мы создадим Ingress для `notes.lab` в кластере, где нет контроллера. Что покажет колонка ADDRESS и что ответит `curl`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 ADDRESS пустой, потому что никто не обработал объект. `curl` получит отказ соединения (порт 80 на узле kind ничем не слушается), хотя Ingress создан без ошибок.
@@ -153,7 +153,7 @@ curl: (7) Failed to connect to notes.lab port 80 after 0 ms: Couldn't connect to
 
 **Предскажи:** какие новые типы объектов появятся после установки и в каком namespace запустится контроллер?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Появятся CRD `gateways`, `gatewayclasses`, `httproutes` и другие из `gateway.networking.k8s.io`, а также `envoyproxies` из `gateway.envoyproxy.io`. Контроллер запустится в namespace `envoy-gateway-system`.
@@ -204,7 +204,7 @@ Envoy Gateway и три пода `notes` вместе с kind укладываю
 
 **Предскажи:** что будет, если применить только HTTPRoute без Gateway? Что покажет его статус?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Объект создастся, но `Accepted` не станет True: маршруту не к кому привязаться (parentRef указывает на несуществующий Gateway). Трафика не будет. Ошибки от API не будет, ошибка живёт только в статусе.
@@ -344,7 +344,7 @@ Accepted ResolvedRefs
 
 **Предскажи:** после создания Secret `notes-tls` какие условия у listener `https` станут True и почему `curl` без `-k` всё равно откажет?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Станут True `Programmed`, `Accepted` и `ResolvedRefs` (ссылка на Secret найдена). Curl откажет с `SSL certificate problem`: сертификат самоподписанный, у системы нет причин ему доверять. Шифрование при этом работает.
@@ -434,7 +434,7 @@ kubectl get endpoints notes -n notes
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
 **1. HTTPRoute без Accepted.** В `describe httproute` условие `Accepted: False`, причина `NoMatchingParent` или `BackendNotFound` для parent: в `parentRefs` опечатка в имени Gateway (например `notes-gateway`). API такое принимает молча. Исправление: `parentRefs[0].name: notes-gw` и `kubectl apply -f k8s/base/32-httproute.yaml`. Симптом снаружи: `404` от Envoy.

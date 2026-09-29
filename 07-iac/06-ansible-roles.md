@@ -56,7 +56,7 @@ roles/notes/
 
 > **Проверь понимание:** чем `defaults/main.yml` отличается от `vars/main.yml`, и куда ты положишь порт приложения?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `defaults` переопределяются чем угодно: `group_vars`, `-e`, inventory. `vars` роли имеют высокий приоритет и снаружи почти не перебиваются. Порт приложения это настройка, которую пользователь роли захочет менять, значит `defaults`.
@@ -71,7 +71,7 @@ roles/notes/
 
 > **Проверь понимание:** `notes_tag` задан в `defaults` роли как `0.4.1` и в `group_vars/all` как `0.4.0`. Запуск идёт без `-e`. Какой тег задеплоится?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 `0.4.0`. `group_vars` сильнее `defaults`.
@@ -90,7 +90,7 @@ roles/notes/
 
 > **Проверь понимание:** ты закоммитил `vault.yml` в зашифрованном виде, а `.vault-pass` тоже случайно добавил в git. Что произошло с защитой?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Защиты нет: ключ лежит рядом с замком, а история git хранит его вечно. Пароль vault нужно сменить (`ansible-vault rekey`), а пароль БД считать скомпрометированным и сменить тоже.
@@ -121,7 +121,7 @@ roles/notes/
 
 **Предскажи:** сколько задач покажут `changed` при втором запуске роли? Почему? 
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Ноль. Модули `apt`, `get_url`, `apt_repository` и `service` проверяют состояние и меняют его только при расхождении.
@@ -252,7 +252,7 @@ notes-vm                   : ok=7    changed=0    unreachable=0    failed=0    s
 
 **Предскажи:** что покажет `cat group_vars/all/vault.yml` после шифрования: пароль, часть пароля или что-то ещё?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Заголовок `$ANSIBLE_VAULT;1.1;AES256` и строки шестнадцатеричного текста. Пароля нет.
@@ -319,7 +319,7 @@ vault_notes_db_password: "***"
 
 **Предскажи:** какие права будут у `/etc/notes/notes.env` и кто сможет его прочитать на ВМ? Почему это важно в модуле `template`?
 
-<details>
+<details markdown="1">
 <summary>Ответ</summary>
 
 Владелец `root`, группа `notes`, режим `0640`. Читают `root` и участники `notes`. Режим задаётся в самой задаче, иначе пароль окажется на диске с umask по умолчанию (`0644`), доступный всем.
@@ -560,7 +560,7 @@ grep -rn "dependencies" roles/notes/meta/main.yml
 
 ### Исправление
 
-<details>
+<details markdown="1">
 <summary>Разбор всех сценариев</summary>
 
 1. Неверный порядок ролей: в `meta/main.yml` роли `notes` снова допиши `dependencies: [{role: docker}]` либо переставь роли в `site.yml`. Задачи Compose теперь идут после установки Docker.

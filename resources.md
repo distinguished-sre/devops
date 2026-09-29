@@ -1,10 +1,9 @@
 ---
+layout: page
 title: "Дополнительные материалы и ссылки"
 redirect_from:
   - /Старые-уроки-и-задания.html
 ---
-
-# Дополнительные материалы и ссылки
 
 > Раньше этот файл был архивом уроков и вопросов к собеседованию. **Вопросы разнесены по темам** — теперь они лежат рядом с соответствующей теорией и, в отличие от прежней версии, снабжены ответами. Ищи их в разделе `Вопросы с собеседований` в конце теоретической части каждой темы:
 >
@@ -42,7 +41,7 @@ redirect_from:
 
 ### Дополнительные материалы по темам
 
-<details>
+<details markdown="1">
   <summary>Linux, сети и bash-скрипты</summary>
 
 | Что изучить | Как понять, что цель достигнута |
@@ -53,7 +52,7 @@ redirect_from:
 
 </details>
 
-<details>
+<details markdown="1">
   <summary>Git и GitLab CI/CD</summary>
 
 | Что изучить | Как понять, что цель достигнута |
@@ -63,7 +62,7 @@ redirect_from:
 
 </details>
 
-<details>
+<details markdown="1">
   <summary>Docker и Kubernetes</summary>
 
 | Что изучить | Как понять, что цель достигнута |
@@ -77,7 +76,7 @@ redirect_from:
 
 </details>
 
-<details>
+<details markdown="1">
   <summary>Мониторинг и логирование</summary>
 
 | Что изучить | Как понять, что цель достигнута |
@@ -91,7 +90,7 @@ redirect_from:
 
 </details>
 
-<details>
+<details markdown="1">
   <summary>Ansible и Terraform</summary>
 
 | Что изучить | Как понять, что цель достигнута |
