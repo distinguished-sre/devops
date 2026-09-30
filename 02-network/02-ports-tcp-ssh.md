@@ -8,11 +8,11 @@ time: "3 ч"
 
 ## Зачем это нужно
 
-IP-адрес приводит пакет на нужную машину, но на машине работают десятки программ: sshd (программа, которая пускает по SSH), nginx, база данных, твои «Заметки». Как пакет попадает именно в нужную? Через **порт**. На работе это самые частые вопросы: «сервис не отвечает», «порт занят», «`Connection refused` или `timed out`, в чём разница», «как зайти на сервер, не вводя пароль».
+IP-адрес приводит пакет на нужную машину, но на машине работают десятки программ: sshd (программа, которая пускает на сервер по SSH, то есть по защищённому удалённому входу, о нём ниже), nginx (веб-сервер: программа, которая принимает запросы от браузеров и отдаёт страницы; подробно в [уроке 2.5](05-nginx.md)), база данных, твои «Заметки». Как пакет попадает именно в нужную? Через **порт**. На работе это самые частые вопросы: «сервис не отвечает», «порт занят», «`Connection refused` или `timed out`, в чём разница» (это два разных сообщения об ошибке подключения: «refused» значит «отказано», машина ответила, что здесь никто не ждёт; «timed out» значит «время вышло», ответа нет совсем; подробно разберём в теории), «как зайти на сервер, не вводя пароль».
 
-К концу урока ты будешь читать вывод команды `ss` (она показывает, кто что слушает), отличать отказ от молчания и ходить на сервер по ключу вместо пароля.
+К концу урока ты будешь читать вывод команды `ss` (она показывает, кто что слушает: программа «слушает» порт, когда заняла его и ждёт входящих подключений, как оператор у телефона), отличать отказ от молчания и ходить на сервер по ключу вместо пароля.
 
-Шаг проекта: на ВМ с «Заметками» ты создаёшь SSH-ключ `~/.ssh/id_ed25519`, кладёшь его открытую часть в `authorized_keys` на сервере и заходишь без пароля. Код проекта не меняется: «Заметки» остаются на `127.0.0.1:8080`, версия `app.py` v2.2.
+Шаг проекта: на ВМ с «Заметками» ты создаёшь SSH-ключ `~/.ssh/id_ed25519`, кладёшь его открытую часть в `authorized_keys` (обычный текстовый файл на сервере со списком открытых ключей, которым разрешено входить) на сервере и заходишь без пароля. Код проекта не меняется: «Заметки» остаются на `127.0.0.1:8080`, версия `app.py` v2.2.
 
 ## Что нужно знать
 
@@ -21,7 +21,7 @@ IP-адрес приводит пакет на нужную машину, но �
 - [Урок 1.4: процессы и сигналы](../01-linux/04-processes-signals.md): PID (номер процесса) и `kill`, чтобы разобраться с процессом, который занял порт.
 - [Урок 1.8: systemd](../01-linux/08-systemd-editors.md): «Заметки» работают как сервис `notes`; понадобятся `systemctl status`, `journalctl -u` и файл `/etc/notes/notes.env`.
 
-Про порты, TCP и шифрование ты ничего знать не обязан: всё нужное объясняется ниже.
+Про порты, TCP и шифрование ты ничего знать не обязан: всё нужное объясняется ниже. Коротко: TCP это правила надёжной передачи данных, а **шифрование** это превращение данных в нечитаемую мешанину, которую может вернуть в нормальный вид только тот, у кого есть нужный ключ. Перехватчик в сети увидит только мешанину.
 
 ## Картина целиком
 
@@ -42,6 +42,8 @@ IP-адрес приводит пакет на нужную машину, но �
         ss показывает эти пары, nc и curl их проверяют
         ssh входит по ключу в порт 22
 ```
+
+Слова, которые мы ещё не раскрыли: **клиент** это программа, которая обращается за услугой (твой `ssh` или `curl`), **сервер** это программа, которая ждёт обращений и отвечает (`sshd`, «Заметки»). Это роли программ, а не особые компьютеры: одна машина может быть и тем и другим. **Сокет** (socket) это «одна конкретная точка подключения»: пара «адрес:порт», которую программа получила от системы; подробно ниже.
 
 Дальше по порядку: что такое порт и сокет, как TCP устанавливает соединение и чем «отказ» отличается от «молчания», как читать `ss`, как устроены SSH-ключи и как через SSH безопасно дотянуться до закрытого порта.
 
@@ -223,6 +225,8 @@ OSError: [Errno 98] Address already in use
 | `Connection timed out`, долго | ответа нет, пакеты пропадают | по пути: файрвол (DROP), группа безопасности в облаке, маршрут, выключенная машина |
 | `No route to host`, `Network is unreachable` | у машины нет пути к адресу | таблица маршрутов, шлюз (урок [2.1](01-addresses-routes.md)) |
 
+**Группа безопасности** (security group) из таблицы выше это тот же файрвол, только не на самой машине, а в облаке: провайдер облака фильтрует пакеты до того, как они дойдут до твоей ВМ. Правила в ней пишешь ты в консоли облака; подробно в [теме 6](../06-cloud/index.md). Снаружи разницы нет: запрещённый пакет тоже молча пропадает и ты видишь `timed out`.
+
 Есть и мягкий вариант файрвола, `REJECT` («отклонить»): он отвечает сам, как будто порт закрыт. Тогда ты видишь быстрый `refused` даже при наличии файрвола, и различить причины по одному сообщению нельзя. Поэтому смотри на оба места: и на клиенте (быстро или долго), и на сервере (`ss`).
 
 **Состояния соединения.** Пока соединение живёт, у каждого его конца есть состояние, и `ss` их показывает:
@@ -339,7 +343,7 @@ LISTEN 0      4096            [::]:22           [::]:*    users:(("systemd",pid=
     сверяю с known_hosts: знаю этот сервер?
     нет: спрашиваю тебя;  да и не совпало: ОСТАНОВКА (защита от подмены)
  3. канал зашифрован
- 4. «я student, вот мой открытый ключ» ───────►  ищет ключ в authorized_keys
+ 4. «я ubuntu, вот мой открытый ключ» ───────►  ищет ключ в authorized_keys
  5.                          ◄─────────────── «докажи»: отправляет случайные данные
  6. подписывает их ЗАКРЫТЫМ ключом ───────────►  проверяет подпись ОТКРЫТЫМ
  7.                          ◄─────────────── подпись верна: пускает
@@ -366,7 +370,7 @@ Are you sure you want to continue connecting (yes/no/[fingerprint])?
 **Разобранный пример: формат `authorized_keys`.** Это обычный текстовый файл, по одной строке на ключ. Строка три поля через пробел:
 
 ```text
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG notes-student
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG notes-ubuntu
 ```
 
 Первое поле `ssh-ed25519`: тип ключа. Второе: сам открытый ключ в кодировке текста. Третье: комментарий, который ничего не значит для проверки (по нему ты потом узнаешь, чей это ключ, ищи его в файле по имени или почте). Такой же формат у файла `id_ed25519.pub`, поэтому `ssh-copy-id` (команда, которая кладёт ключ на сервер) просто дописывает эту строку в `authorized_keys`. Это безопасно: открытый ключ ничего не открывает без парного закрытого.
@@ -386,7 +390,7 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG
 
 Если нарушить, клиент напишет `WARNING: UNPROTECTED PRIVATE KEY FILE!` (закрытый ключ читаем всеми), а sshd молча не примет ключ, и причину найдёшь только в его журнале. Это защита, а не каприз: иначе любой пользователь машины мог бы подложить себе чужой ключ.
 
-**Удобство: `~/.ssh/config`.** Чтобы не писать каждый раз `ssh -i ~/.ssh/id_ed25519 -p 22 student@192.168.64.10`, описываешь сервер один раз в файле `~/.ssh/config`: имя `Host`, адрес `HostName`, пользователя `User`, порт `Port`, ключ `IdentityFile`. Дальше достаточно `ssh notes-vm`.
+**Удобство: `~/.ssh/config`.** Чтобы не писать каждый раз `ssh -i ~/.ssh/id_ed25519 -p 22 ubuntu@192.168.64.10`, описываешь сервер один раз в файле `~/.ssh/config`: имя `Host`, адрес `HostName`, пользователя `User`, порт `Port`, ключ `IdentityFile`. Дальше достаточно `ssh notes-vm`.
 
 **Что путают.**
 
@@ -477,18 +481,18 @@ ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG
 **Разобранный пример.** Успешный вход оставляет в журнале строку:
 
 ```text
-Accepted publickey for student from ::1 port 40022 ssh2: ED25519 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk
+Accepted publickey for ubuntu from ::1 port 40022 ssh2: ED25519 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk
 ```
 
-Читай так: принят вход по ключу (`publickey`), для пользователя `student`, с адреса `::1` (это loopback в записи IPv6, урок [2.1](01-addresses-routes.md)), с порта клиента 40022, ключ типа ED25519 с таким отпечатком. Если права на `~/.ssh` слишком широкие, вместо этого будет:
+Читай так: принят вход по ключу (`publickey`), для пользователя `ubuntu`, с адреса `::1` (это loopback в записи IPv6, урок [2.1](01-addresses-routes.md)), с порта клиента 40022, ключ типа ED25519 с таким отпечатком. Если права на `~/.ssh` слишком широкие, вместо этого будет:
 
 ```text
-Authentication refused: bad ownership or modes for directory /home/student/.ssh
+Authentication refused: bad ownership or modes for directory /home/ubuntu/.ssh
 ```
 
 Слова `bad ownership or modes` значат «неверный владелец или права». Именно эту строку ты найдёшь в разделе «Сломай и почини».
 
-А почему в ошибке клиента написано `(publickey,password)`? Потому что в скобках сервер перечисляет способы, которые у него ещё остались. Пока разрешён пароль, он есть в списке, и после отказа ключа ssh спросит пароль (`student@localhost's password:`). Если пароли отключены, будет `Permission denied (publickey).`, и спросить уже нечего.
+А почему в ошибке клиента написано `(publickey,password)`? Потому что в скобках сервер перечисляет способы, которые у него ещё остались. Пока разрешён пароль, он есть в списке, и после отказа ключа ssh спросит пароль (`ubuntu@localhost's password:`). Если пароли отключены, будет `Permission denied (publickey).`, и спросить уже нечего.
 
 **Что путают.**
 
@@ -513,8 +517,8 @@ Authentication refused: bad ownership or modes for directory /home/student/.ssh
 **Разобранный пример.** Настоящие строки при успешном входе (лишнее убрано):
 
 ```text
-debug1: Offering public key: /home/student/.ssh/id_ed25519 ED25519 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk
-debug1: Server accepts key: /home/student/.ssh/id_ed25519 ED25519 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk
+debug1: Offering public key: /home/ubuntu/.ssh/id_ed25519 ED25519 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk
+debug1: Server accepts key: /home/ubuntu/.ssh/id_ed25519 ED25519 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk
 Authenticated to localhost ([::1]:22) using "publickey".
 ```
 
@@ -807,25 +811,25 @@ ssh notes-vm 'echo зашёл по ключу'
 
 Что значит каждая строка конфига: `Host notes-vm` это короткое имя, которое ты будешь вводить после `ssh`; `HostName` реальный адрес; `User` под каким пользователем входить; `IdentityFile` какой закрытый ключ предлагать. Отступы в четыре пробела не обязательны, но так принято.
 
-**Что должно получиться:** ниже настоящий вывод (Ubuntu 24.04, OpenSSH 9.6, пользователь `student`, вход на `localhost`).
+**Что должно получиться:** ниже настоящий вывод (Ubuntu 24.04, OpenSSH 9.6, пользователь `ubuntu`, вход на `localhost`).
 
 ```text
--rw------- 1 student student 399 Sep 30 11:53 /home/student/.ssh/id_ed25519
--rw-r--r-- 1 student student  95 Sep 30 11:53 /home/student/.ssh/id_ed25519.pub
-256 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk notes-student (ED25519)
-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG notes-student
+-rw------- 1 ubuntu ubuntu 399 Sep 30 11:53 /home/ubuntu/.ssh/id_ed25519
+-rw-r--r-- 1 ubuntu  ubuntu   95 Sep 30 11:53 /home/ubuntu/.ssh/id_ed25519.pub
+256 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk notes-ubuntu (ED25519)
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG notes-ubuntu
 ```
 
 Вывод `ssh-copy-id`:
 
 ```text
-/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/student/.ssh/id_ed25519.pub"
+/usr/bin/ssh-copy-id: INFO: Source of key(s) to be installed: "/home/ubuntu/.ssh/id_ed25519.pub"
 /usr/bin/ssh-copy-id: INFO: attempting to log in with the new key(s), to filter out any that are already installed
 /usr/bin/ssh-copy-id: INFO: 1 key(s) remain to be installed -- if you are prompted now it is to install the new keys
 
 Number of key(s) added: 1
 
-Now try logging into the machine, with:   "ssh 'student@localhost'"
+Now try logging into the machine, with:   "ssh 'ubuntu@localhost'"
 and check to make sure that only the key(s) you wanted were added.
 ```
 
@@ -833,8 +837,8 @@ and check to make sure that only the key(s) you wanted were added.
 
 ```text
 1b20d9f21c72
-drwx------ 2 student student 4096 Sep 30 11:53 /home/student/.ssh
--rw------- 1 student student 95 Sep 30 11:53 /home/student/.ssh/authorized_keys
+drwx------ 2 ubuntu ubuntu 4096 Sep 30 11:53 /home/ubuntu/.ssh
+-rw------- 1 ubuntu  ubuntu  95 Sep 30 11:53 /home/ubuntu/.ssh/authorized_keys
 ```
 
 Вывод шага 5:
@@ -848,8 +852,8 @@ drwx------ 2 student student 4096 Sep 30 11:53 /home/student/.ssh
 **Как читать вывод:**
 
 - `-rw-------` у закрытого ключа: читать и писать может только владелец. `-rw-r--r--` у открытого: читать могут все, это безопасно. Число `399` и `95` это размер в байтах.
-- `256 SHA256:... notes-student (ED25519)`: 256 это размер ключа в битах, дальше отпечаток, комментарий и тип. Этот отпечаток можно сообщать людям, он не секретный.
-- Строка `ssh-ed25519 AAAA... notes-student`: то, что попадёт в `authorized_keys`. Три поля: тип, ключ, комментарий.
+- `256 SHA256:... notes-ubuntu (ED25519)`: 256 это размер ключа в битах, дальше отпечаток, комментарий и тип. Этот отпечаток можно сообщать людям, он не секретный.
+- Строка `ssh-ed25519 AAAA... notes-ubuntu`: то, что попадёт в `authorized_keys`. Три поля: тип, ключ, комментарий.
 - `Number of key(s) added: 1`: на сервер добавлен один ключ. Если ты запустишь `ssh-copy-id` второй раз, увидишь `Number of key(s) added: 0` и сообщение, что все ключи уже установлены: дублей не будет.
 - `1b20d9f21c72` это результат `hostname`: имя машины, на которой выполнилась команда. Так видно, что ты действительно на сервере.
 - `drwx------` у `~/.ssh`: `d` каталог, права 700. У `authorized_keys` права 600: `ssh-copy-id` поставил их сам.
@@ -863,7 +867,7 @@ drwx------ 2 student student 4096 Sep 30 11:53 /home/student/.ssh
 **Типичные ошибки:**
 
 - `Permission denied (publickey).` (если вход по паролю на сервере отключён; иначе ssh после отказа ключа спросит пароль, а при `-o BatchMode=yes` напишет `Permission denied (publickey,password).`): сервер не принял ключ. Проверь `authorized_keys`, права `~/.ssh` (700) на сервере и что ты входишь под тем пользователем, которому положил ключ.
-- `WARNING: UNPROTECTED PRIVATE KEY FILE!` и `Permissions 0644 for '/home/student/.ssh/id_ed25519' are too open.`: закрытый ключ читаем всеми. Исправь `chmod 600 ~/.ssh/id_ed25519`. Ниже в тексте ssh добавит `Load key ...: bad permissions`: ключ проигнорирован.
+- `WARNING: UNPROTECTED PRIVATE KEY FILE!` и `Permissions 0644 for '/home/ubuntu/.ssh/id_ed25519' are too open.`: закрытый ключ читаем всеми. Исправь `chmod 600 ~/.ssh/id_ed25519`. Ниже в тексте ssh добавит `Load key ...: bad permissions`: ключ проигнорирован.
 - `ssh: connect to host 192.168.64.10 port 22: Connection refused`: sshd не запущен или порт другой. `sudo systemctl enable --now ssh` (в Ubuntu сервис называется `ssh`).
 - `ssh: connect to host 192.168.64.10 port 22: Connection timed out`: до машины не доходит. Проверь адрес, подсеть, файрвол или группу безопасности (урок [2.1](01-addresses-routes.md)).
 - `Host key verification failed.` вместе с `WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!`: ключ сервера изменился. Не чини вслепую, разберись, пересоздавали ли сервер; потом `ssh-keygen -R <хост>`.
@@ -926,7 +930,7 @@ ss -tlnp | grep 9090
 **Что должно получиться:**
 
 ```text
-1 /home/student/.ssh/authorized_keys
+1 /home/ubuntu/.ssh/authorized_keys
 ```
 
 ```text
@@ -963,7 +967,7 @@ curl: (7) Failed to connect to 127.0.0.1 port 9090 after 0 ms: Couldn't connect 
 
 **Как читать вывод:**
 
-- `1 /home/student/.ssh/authorized_keys`: одна строка (один ключ) в файле.
+- `1 /home/ubuntu/.ssh/authorized_keys`: одна строка (один ключ) в файле.
 - `ok`: ответ «Заметок» на `/healthz` (в v2.2 это текст `ok`, не JSON). Ниже `ss`: 8080 на `127.0.0.1`, 22 на `0.0.0.0` и `[::]`; у 22 два процесса, потому что после первого входа sshd запущен, а слушающий сокет всё ещё держит systemd.
 - `succeeded!` на порт 22 и `Connection refused` на 8080: ровно то, что мы предсказали. Порт 8080 «закрыт» без всякого файрвола, потому что на этом адресе его никто не слушает.
 - `0` в конце шага 4: ключа среди файлов репозитория нет (`grep -c` печатает 0 и завершается с кодом 1, это нормально).
@@ -1000,8 +1004,8 @@ bash /tmp/break-2.2.sh 1
 
 Проверяй вход командой `ssh -o BatchMode=yes localhost true`. Ключ `BatchMode=yes` запрещает ssh задавать вопросы (например, про пароль): он сразу скажет, чем закончилась попытка. Вход по ключу, который работал, ломается. Ты видишь одно из трёх:
 
-- **Сценарий 1.** `student@localhost: Permission denied (publickey,password).` (без `BatchMode` ssh ещё дважды спросит пароль и напишет `Permission denied, please try again.`).
-- **Сценарий 2.** Сначала `WARNING: UNPROTECTED PRIVATE KEY FILE!` и `Permissions 0644 for '/home/student/.ssh/id_ed25519' are too open.`, потом `Load key ...: bad permissions`, после чего снова `Permission denied (publickey,password).`
+- **Сценарий 1.** `ubuntu@localhost: Permission denied (publickey,password).` (без `BatchMode` ssh ещё дважды спросит пароль и напишет `Permission denied, please try again.`).
+- **Сценарий 2.** Сначала `WARNING: UNPROTECTED PRIVATE KEY FILE!` и `Permissions 0644 for '/home/ubuntu/.ssh/id_ed25519' are too open.`, потом `Load key ...: bad permissions`, после чего снова `Permission denied (publickey,password).`
 - **Сценарий 3.** `ssh: connect to host localhost port 2222: Connection refused`.
 
 Про текст «publickey,password»: в скобках ssh перечисляет способы входа, которые ещё остались у сервера. Если бы вход по паролю был отключён, было бы `Permission denied (publickey).`
@@ -1038,7 +1042,7 @@ ls -ld ~ ~/.ssh; ls -l ~/.ssh/authorized_keys               # права на с
 <details markdown="1">
 <summary>Разбор трёх сценариев</summary>
 
-**Сценарий 1: `Permission denied (publickey,password)`, а ключ на месте.** В журнале сервера видно причину: `Authentication refused: bad ownership or modes for directory /home/student/.ssh`. Каталог `~/.ssh` получил права `777` (`drwxrwxrwx`), и sshd перестал доверять всему, что внутри: любой мог бы подложить себе ключ. Клиент об этом ничего не знает, поэтому в `ssh -v` видно только «предложил ключ, отказали». Поэтому журнал сервера первый источник правды. Починка: `chmod 700 ~/.ssh`. Если ключа нет в `authorized_keys`, добавь содержимое `id_ed25519.pub` в файл (через консоль ВМ, если по ключу войти уже нельзя).
+**Сценарий 1: `Permission denied (publickey,password)`, а ключ на месте.** В журнале сервера видно причину: `Authentication refused: bad ownership or modes for directory /home/ubuntu/.ssh`. Каталог `~/.ssh` получил права `777` (`drwxrwxrwx`), и sshd перестал доверять всему, что внутри: любой мог бы подложить себе ключ. Клиент об этом ничего не знает, поэтому в `ssh -v` видно только «предложил ключ, отказали». Поэтому журнал сервера первый источник правды. Починка: `chmod 700 ~/.ssh`. Если ключа нет в `authorized_keys`, добавь содержимое `id_ed25519.pub` в файл (через консоль ВМ, если по ключу войти уже нельзя).
 
 **Сценарий 2: права 644 на закрытом ключе.** Клиент отказывается использовать ключ: `WARNING: UNPROTECTED PRIVATE KEY FILE!` и `Load key ...: bad permissions`. Сервер тут вообще не при чём, до него ключ даже не доходит. Починка: `chmod 600 ~/.ssh/id_ed25519`. Вывод: ssh требует, чтобы ключ читал только владелец.
 
@@ -1251,7 +1255,7 @@ TCP: соединение, гарантия доставки и порядка, 
 
 ## Проверено на версиях
 
-Прогонялось на стенде: Docker-контейнер `devops-lab:24.04` (Ubuntu 24.04, systemd), пользователь `student`, «Заметки» `app.py` v2.2 из `project/notes/versions/` под systemd как в уроке 1.8, вход `ssh localhost`.
+Прогонялось на стенде: Docker-контейнер `devops-lab:24.04` (Ubuntu 24.04, systemd), пользователь `ubuntu`, «Заметки» `app.py` v2.2 из `project/notes/versions/` под systemd как в уроке 1.8, вход `ssh localhost`.
 
 - Ubuntu 24.04 LTS: OpenSSH 9.6p1 (`openssh-server 1:9.6p1-3ubuntu13.19`), iproute2 6.1.0, iptables 1.8.10 (nf_tables), netcat-openbsd 1.226, curl 8.5.0, tcpdump 4.99.4, Python 3.12. Прогнаны все задания 1-4 (кроме проверки с настоящего внешнего клиента: адрес `172.17.0.8` это адрес контейнера), туннель `-L`, `-J`, все три сценария `break.sh` и `fix`.
 - Ubuntu 26.04 LTS (контейнер без systemd, без прав на iptables): OpenSSH 10.2p1, iproute2 6.19.0, netcat-openbsd 1.234, curl 8.18.0, Python 3.14.4. Проверены сообщения `nc` и `curl` при отказе (`Connection refused`; curl пишет `Could not connect to server`), формат `ss -tlnp`, `ssh-keygen`, вход по ключу и предупреждение о правах ключа. Вид вывода тот же, что на 24.04. Правило DROP и `ssh.socket` на 26.04 не прогонялись.

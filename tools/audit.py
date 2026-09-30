@@ -33,7 +33,14 @@ def lessons():
 def strip_code(text):
     """Строки урока с пометкой: внутри блока кода или нет. Inline-код остаётся."""
     rows, code = [], False
-    for i, line in enumerate(text.splitlines(), 1):
+    lines = text.splitlines() or [""]
+    front = lines[0] == "---"
+    for i, line in enumerate(lines, 1):
+        if front:
+            # front matter: служебные поля, как код (в поиск не идут)
+            rows.append((i, line, True))
+            front = not (i > 1 and line == "---")
+            continue
         if line.lstrip().startswith("```"):
             code = not code
             rows.append((i, line, True))
@@ -83,7 +90,7 @@ def variants(cell):
         # в скобках обычно английский оригинал: берём только латиницу
         out += [x.strip() for x in m.split(",") if re.fullmatch(r"[A-Za-z][\w .-]{2,}", x.strip())]
     main = re.sub(r"\([^)]*\)", "", cell)
-    out += [p.strip() for p in re.split(r"[,;]", main) if len(p.strip()) >= 2]
+    out += [p.strip() for p in re.split(r"[,;]| / ", main) if len(p.strip()) >= 2]
     return out
 
 
@@ -112,7 +119,7 @@ def pattern(term):
     return re.compile(rf"(?<!{WORD}){body}(?!{WORD})", flags)
 
 
-EXPLAINED = re.compile(r"^[`*»\s]*(\(|:|\s[-–—]\s|,?\s+это\s|,\s+(то есть|или|котор))")
+EXPLAINED = re.compile(r"^[`»]*(\s*\([^)]*[а-яё][^)]*\)|\*\*:|\*\*\s[-–]\s|\s[-–—]\s|,?\s+это\s|,\s+(то есть|котор))")
 
 
 def first_hit(rows, pat, start=1, blob=None):
@@ -131,6 +138,7 @@ def first_hit(rows, pat, start=1, blob=None):
 def audit(only=None):
     ls = lessons()
     intro = {}  # термин (lower) -> id урока, где впервые в словарике
+    orig = {}   # термин (lower) -> как записан в словарике
     info = []
     for l in ls:
         text = l["path"].read_text()
@@ -148,6 +156,7 @@ def audit(only=None):
         for cell in gl:
             for v in variants(cell):
                 intro.setdefault(v.lower(), l["id"])
+                orig.setdefault(v.lower(), v)
 
     order = {x["id"]: n for n, x in enumerate(info)}
     pats = {t: pattern(t) for t in intro}
@@ -156,7 +165,8 @@ def audit(only=None):
         if only and x["id"] not in only:
             continue
         rows, n = x["rows"], order[x["id"]]
-        body = [r for r in rows if r[0] < x["body_end"]]
+        gs = next((s for s in x["secs"] if s[0].startswith("Словарик")), None)
+        body = [r for r in rows if not (gs and gs[1] <= r[0] <= gs[2])]
         own = {v.lower() for c in x["gl"] for v in variants(c)}
         blob = "\n".join(r[1] for r in body if not r[2])
         early, forward = [], []
@@ -167,7 +177,7 @@ def audit(only=None):
                 early.append((t, hit))
         # термины из более поздних уроков, которыми урок уже пользуется
         for t, where in intro.items():
-            if order[where] > n and t not in own and notable(t):
+            if order[where] > n and t not in own and notable(orig[t]):
                 hit = first_hit(body, pats[t], blob=blob)
                 if hit:
                     forward.append((t, where, hit))

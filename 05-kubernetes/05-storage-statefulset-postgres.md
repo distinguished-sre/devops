@@ -12,7 +12,9 @@ time: "3 ч"
 
 На работе это первый вопрос к любому сервису с данными в кластере: где живут данные, кто их создаёт, что будет при удалении пода, при удалении StatefulSet и при удалении всего namespace. Ошибка здесь стоит потери данных, а не просто рестарта.
 
-Шаг проекта: в `k8s/base/40-postgres.yaml` появляются StatefulSet `postgres` (образ `postgres:18`), headless Service `db` и PVC на 1 ГиБ; Secret `notes-db` с паролем создан командой и в git не попадает. База доступна по адресу `db.notes.svc:5432`.
+Шаг проекта: в `k8s/base/40-postgres.yaml` появляются StatefulSet `postgres` (образ `postgres:18`), headless Service `db` и PVC на 1 ГиБ; Secret `notes-db` с паролем создан командой и в git не попадает.
+
+Четыре новых слова, чтобы не спотыкаться дальше. **StatefulSet** - контроллер (объект, который следит, чтобы нужные поды существовали), который делает поды с постоянными именами и своим диском у каждого, в отличие от Deployment из [урока 5.2](02-pods-deployments.md), где поды взаимозаменяемы. **PVC** (PersistentVolumeClaim) - заявка на диск: ты пишешь «нужен 1 ГиБ», а кластер находит или создаёт подходящий. Без заявки пришлось бы вручную знать, какой именно диск где лежит. **Headless Service** (безголовый сервис) - сервис из [урока 5.3](03-services-dns.md) без общего адреса: DNS отдаёт клиенту адрес конкретного пода, а не случайного из группы. Без него клиент не смог бы обратиться именно к `postgres-0`. **Secret** - объект для пароля: значение хранится отдельно от манифеста Deployment и не попадает в git (подробно разберём в [уроке 5.6](06-config-secrets.md)). Все четыре подробно разобраны ниже в теории. База доступна по адресу `db.notes.svc:5432`.
 
 ## Что нужно знать
 
@@ -20,7 +22,7 @@ time: "3 ч"
 - [Урок 4.4: SQL и PostgreSQL](../04-docker/04-sql-postgres-basics.md) - `psql`, таблица `notes`
 - [Урок 4.5: Compose и PostgreSQL](../04-docker/05-compose-postgres.md) - переменные `POSTGRES_*`, инициализация базы
 - [Урок 5.2: Поды и Deployment](02-pods-deployments.md) - почему под одноразовый, `emptyDir`
-- [Урок 5.3: Service и DNS кластера](03-services-dns.md) - Service, endpoints, DNS-имена `<svc>.<ns>.svc`
+- [Урок 5.3: Service и DNS кластера](03-services-dns.md) - Service, endpoints (список адресов подов, на которые Service раскидывает запросы), DNS-имена `<svc>.<ns>.svc`
 
 Если что-то из этого забылось, ничего страшного: каждый термин ниже напоминается одной фразой.
 
@@ -29,7 +31,7 @@ time: "3 ч"
 Представь гостиницу с дежурными администраторами. Администратор (под) работает посменно: смена закончилась, пришёл другой человек, который ничего не помнит. Если администратор записывал брони на листке в кармане, при смене листок пропал. Поэтому брони записывают в журнал, который лежит в сейфе на ресепшене и переходит от смены к смене.
 
 - **Под** это администратор: пришёл, поработал, ушёл. Его собственная память (файловая система контейнера) исчезает вместе с ним.
-- **Журнал в сейфе** это данные базы. Они должны жить отдельно от того, кто в них пишет.
+- **Журнал в сейфе** это данные базы. Технически такой отдельный каталог называется **том** (volume): папка, которая живёт отдельно от пода и подключается в него, как флешка в компьютер. Они должны жить отдельно от того, кто в них пишет.
 - **PVC** (заявка на том) это записка «мне нужен сейф на 1 ГиБ». Ты не выбираешь конкретный сейф, ты описываешь, что нужно.
 - **StorageClass** (класс хранилища) это завхоз, который по записке выдаёт или изготавливает подходящий сейф. Готовый сейф называется **PV** (постоянный том).
 - **StatefulSet** это график, по которому смены имеют фиксированные имена («Первый администратор», «Второй администратор») и у каждого свой закреплённый сейф. Пришёл новый человек на смену «Первого»: он получает тот же сейф.
@@ -124,14 +126,18 @@ emptyDir:                                  PVC:
 NAME                                             PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
 storageclass.storage.k8s.io/standard (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  2d
 
-NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-persistentvolumeclaim/data-postgres-0   Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            standard       40s
+NAME                                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+persistentvolumeclaim/data-postgres-0   Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            standard       <unset>                 40s
 
-NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                     STORAGECLASS   AGE
-persistentvolume/pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            Delete           Bound    notes/data-postgres-0     standard       39s
+NAME                                                        CAPACITY   ACCESS MODES   RECLAIM POLICY   STATUS   CLAIM                     STORAGECLASS   VOLUMEATTRIBUTESCLASS   REASON   AGE
+persistentvolume/pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            Delete           Bound    notes/data-postgres-0     standard       <unset>                          39s
 ```
 
 Читаем: класс `standard` помечен `(default)`, значит, PVC без `storageClassName` получит его. В PVC колонка `VOLUME` содержит имя PV: это ссылка «заявка связана с этим томом». В PV колонка `CLAIM` содержит `notes/data-postgres-0`: обратная ссылка «том занят этой заявкой» (namespace/имя). Имена PV генерируются из UID заявки, поэтому длинные и случайные.
+
+Колонка `STATUS` у PVC принимает три значения. `Pending` («ожидает»): заявка принята, но подходящий том ещё не привязан (при `WaitForFirstConsumer` это нормально, пока нет пода). `Bound` («привязан»): заявка связана с томом, под может его использовать. `Lost` («потерян»): том, с которым была связана заявка, исчез (например, PV удалили руками), и данные под угрозой. В повседневной работе ты чаще видишь `Bound`, а `Pending` дольше пары минут при уже запущенном поде повод открыть `kubectl describe pvc`. Колонка `CAPACITY` показывает фактический размер тома: он может оказаться больше запрошенного (запросил 1Gi, получил 1Gi у нашего kind, но облачные диски иногда округляют вверх), и никогда не меньше.
+
+Колонка `VOLUMEATTRIBUTESCLASS` есть у свежих версий `kubectl` (между `STORAGECLASS` и `AGE`). Это «класс атрибутов тома»: необязательная настройка вроде скорости диска, которую можно поменять у уже созданного тома. Мы её не используем, поэтому везде `<unset>` («не задано»). Если у тебя в выводе этой колонки нет, версия `kubectl` старше, и это нормально. Колонка `REASON` у PV пустая, пока с томом всё в порядке.
 
 **Что путают.** PVC часто принимают за сам диск. Это только заявка, диск это PV. Второе заблуждение: «удалил pod, значит, удалил и PVC». Нет, PVC живёт отдельно, и именно поэтому данные переживают под.
 
@@ -629,15 +635,15 @@ pod/postgres-0   1/1     Running   0          40s
 NAME          TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)    AGE
 service/db    ClusterIP   None         <none>        5432/TCP   40s
 
-NAME                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-data-postgres-0         Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            standard       40s
+NAME                    STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+data-postgres-0         Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            standard       <unset>                 40s
 
 /var/run/postgresql:5432 - accepting connections
 ...
 LOG:  database system is ready to accept connections
 ```
 
-**Как читать вывод:** `READY 1/1` у StatefulSet и пода значит, что готова единственная реплика. `CLUSTER-IP None` подтверждает, что сервис headless. У PVC `STATUS Bound` значит «заявка связана с томом», `VOLUME` это имя созданного PV, `RWO` это `ReadWriteOnce`. Фраза `accepting connections` от `pg_isready` и строка `database system is ready to accept connections` в логе значат, что база запущена.
+**Как читать вывод:** `READY 1/1` у StatefulSet и пода значит, что готова единственная реплика (реплика - одна копия пода). `CLUSTER-IP None` подтверждает, что сервис headless. У PVC `STATUS Bound` значит «заявка связана с томом», `VOLUME` это имя созданного PV, `RWO` это `ReadWriteOnce`, `STORAGECLASS standard` это класс, по которому создан том, а `VOLUMEATTRIBUTESCLASS <unset>` значит, что дополнительный класс атрибутов не задан (колонка есть у свежих `kubectl`, у старых её нет). Фраза `accepting connections` от `pg_isready` и строка `database system is ready to accept connections` в логе значат, что база запущена.
 
 **Объясни себе:**
 
@@ -772,8 +778,8 @@ pod "postgres-0" deleted
 (1 row)
 
 statefulset.apps "postgres" deleted
-NAME              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   AGE
-data-postgres-0   Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            standard       9m
+NAME              STATUS   VOLUME                                     CAPACITY   ACCESS MODES   STORAGECLASS   VOLUMEATTRIBUTESCLASS   AGE
+data-postgres-0   Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi        RWO            standard       <unset>                 9m
 ...
  count
 -------
@@ -784,7 +790,7 @@ data-postgres-0   Bound    pvc-8b1a0e0d-42a3-4a7c-b6b1-5a0c3c9e2f41   1Gi       
 1
 ```
 
-**Как читать вывод:** после удаления StatefulSet PVC остаётся в статусе `Bound`, и его `AGE` больше возраста нового пода: это тот же диск. `count 1` значит «строка на месте». Число строк в дампе у тебя может немного отличаться (97 в проверенном прогоне), важно, что `grep -c` вернул `1`: заметка есть в дампе.
+**Как читать вывод:** колонки те же, что в задании 1 (в том числе `VOLUMEATTRIBUTESCLASS` со значением `<unset>`). После удаления StatefulSet PVC остаётся в статусе `Bound`, и его `AGE` больше возраста нового пода: это тот же диск. `count 1` значит «строка на месте». Число строк в дампе у тебя может немного отличаться (97 в проверенном прогоне), важно, что `grep -c` вернул `1`: заметка есть в дампе.
 
 **Объясни себе:**
 
@@ -980,6 +986,7 @@ kubectl -n notes exec -i postgres-0 -- psql -U notes -d notes \
 | CSI | Единый интерфейс, через который кластер подключает хранилища разных производителей |
 | StatefulSet | Контроллер подов со стабильными именами, своим диском у каждого и порядком запуска |
 | `volumeClaimTemplates` | Шаблон, по которому StatefulSet создаёт отдельный PVC каждому поду |
+| VolumeAttributesClass (`VOLUMEATTRIBUTESCLASS`) | Необязательный класс атрибутов тома (например, скорость диска); у нас не задан, в выводе `<unset>` |
 | Headless Service | Service с `clusterIP: None`: без виртуального адреса, DNS отдаёт адреса подов |
 | Ordinal | Порядковый номер пода в StatefulSet: `postgres-0`, `postgres-1` |
 | Secret | Объект для паролей и токенов, значения хранятся в base64 (подробно в уроке 5.6) |

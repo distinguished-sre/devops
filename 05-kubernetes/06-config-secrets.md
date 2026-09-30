@@ -8,19 +8,19 @@ time: "3 ч"
 
 ## Зачем это нужно
 
-Образ `notes:0.4.0` один, а окружений несколько: локально, в dev, в проде. Отличаются адрес базы данных, уровень логов, пароль. Если зашить это в образ, придётся собирать новый образ на каждое изменение, а пароль окажется в реестре образов, откуда его может скачать любой с доступом. Kubernetes отделяет настройки от образа: обычные лежат в ConfigMap, чувствительные (пароли, токены) в Secret.
+Образ (готовый к запуску «слепок» приложения, [урок 4.2](../04-docker/02-dockerfile.md)) `notes:0.4.0` один, а окружений несколько: локально, в dev (тестовая среда разработчиков), в проде (боевая среда, где работают настоящие пользователи). Отличаются адрес базы данных, уровень логов (как подробно приложение пишет о своей работе), пароль. Если зашить это в образ, придётся собирать новый образ на каждое изменение, а пароль окажется в реестре образов (общем складе образов, откуда кластер их скачивает: например, `ghcr.io`), откуда его может скачать любой с доступом. Kubernetes отделяет настройки от образа: обычные лежат в ConfigMap, чувствительные (пароли, токены) в Secret.
 
-На работе с этим сталкиваются каждый день: под не стартует из-за пропавшего ключа, конфиг поменяли, а приложение работает по-старому, пароль случайно попал в git. Отдельная ловушка: Secret выглядит зашифрованным, но это всего лишь base64, обратимая запись без всякого ключа.
+На работе с этим сталкиваются каждый день: под не стартует из-за пропавшего ключа, конфиг поменяли, а приложение работает по-старому, пароль случайно попал в git. Отдельная ловушка: Secret выглядит зашифрованным, но это всего лишь base64. Base64 - способ записать любые данные обычными буквами и цифрами (так «пароль» превращается в `0L/QsNGA0L7Qu9GM`); это как написать слово задом наперёд: прочитать может любой, кто знает приём, и никакой ключ не нужен. Подробно разберём ниже.
 
-Шаг проекта: «Заметки» переходят с файла на PostgreSQL (`STORE=postgres`); обычные настройки берутся из ConfigMap `notes-config`, строка подключения `DATABASE_URL` из Secret `notes-db`.
+Шаг проекта: «Заметки» переходят с файла на PostgreSQL (`STORE=postgres`); обычные настройки берутся из ConfigMap `notes-config`, строка подключения `DATABASE_URL` из Secret `notes-db`. **ConfigMap** - объект кластера, в котором лежат обычные настройки в виде пар «ключ: значение». **Secret** - такой же объект, но для паролей и токенов. **Строка подключения** - одна строка с адресом базы, именем пользователя и паролем, например `postgresql://notes:пароль@db:5432/notes`: по ней приложение находит базу и входит в неё.
 
 ## Что нужно знать
 
-- [Урок 5.2: поды и Deployment](02-pods-deployments.md) - мы правим `10-deployment.yaml`, поэтому нужно понимать шаблон пода и `rollout`
+- [Урок 5.2: поды и Deployment](02-pods-deployments.md) - мы правим `10-deployment.yaml`, поэтому нужно понимать шаблон пода и `rollout` (выкатку: замену старых подов новыми при изменении Deployment)
 - [Урок 5.3: Service и DNS кластера](03-services-dns.md) - адрес БД `db` это DNS-имя Service внутри namespace
 - [Урок 5.5: хранилище и StatefulSet](05-storage-statefulset-postgres.md) - PostgreSQL уже работает в кластере, Secret `notes-db` с паролем уже создан
 - [Урок 4.5: Compose и PostgreSQL](../04-docker/05-compose-postgres.md) - там пароль жил в `.env`, теперь его место занимает Secret
-- [Урок 4.2: Dockerfile](../04-docker/02-dockerfile.md) - переменные окружения приложения и почему образ не должен содержать конфигурацию
+- [Урок 4.2: Dockerfile](../04-docker/02-dockerfile.md) - переменные окружения приложения (пары «имя=значение», которые операционная система передаёт запущенной программе, например `LOG_LEVEL=info`) и почему образ не должен содержать конфигурацию (конфигурация - настройки, от которых зависит поведение программы, но которые не являются её кодом)
 
 ## Картина целиком
 
@@ -398,6 +398,27 @@ ConfigMap demo-config                Каталог /etc/demo в контейн�
 
 </details>
 
+### Как проверить, что контейнер получил настройки
+
+**Зачем.** Ты поправил манифест и применил его. Но работает ли приложение с новыми значениями, видно не из YAML, а из того, что реально лежит внутри пода. Нужна проверка «глазами контейнера».
+
+**Аналогия.** Ты выдал сотруднику бланк, но не уверен, что он взял свежий, а не вчерашний. Проще всего заглянуть к нему на стол. Аналогия неточна тем, что сотрудник сам может взять не ту копию, а контейнер получает ровно то, что собрал kubelet при старте.
+
+**Как устроено.** Команда `kubectl exec` запускает программу внутри работающего контейнера. Программа `printenv ИМЯ` печатает значение переменной окружения. Так ты видишь окружение так, как его видит приложение. Если значение старое, а ConfigMap уже новый, значит, под не перезапускали (переменные читаются один раз при старте).
+
+**Разобранный пример.** `kubectl -n notes exec deploy/notes -- printenv STORE LOG_LEVEL` напечатает две строки: `postgres` и `info`. Порядок строк совпадает с порядком имён в команде. Если переменной нет, `printenv` ничего не печатает для неё и возвращает код 1: пустой вывод здесь ответ «такой переменной в окружении нет». Сравни с `kubectl -n notes get configmap notes-config -o yaml`: там лежит то, что *должно* прийти, а `printenv` показывает то, что *пришло*. Расхождение между ними почти всегда значит «не перезапустили поды».
+
+**Что путают.** Что значение в `kubectl get configmap` и значение в поде всегда совпадают. Совпадают только сразу после старта пода: потом ConfigMap можно изменить, а окружение уже запущенного процесса останется прежним.
+
+> **Проверь понимание:** `get configmap` показывает `LOG_LEVEL: debug`, а `printenv LOG_LEVEL` в поде печатает `info`. Почему и что сделать?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+ConfigMap поменяли после старта пода, а переменные окружения читаются один раз. Перезапусти поды: `kubectl -n notes rollout restart deployment/notes`.
+
+</details>
+
 ### Строка подключения к базе: `DATABASE_URL`
 
 Наконец, о самой чувствительной настройке. Приложение подключается к PostgreSQL по **строке подключения** (connection string) вида URL:
@@ -634,7 +655,7 @@ metadata:
   name: notes-config
   namespace: notes
   labels:
-    app: notes
+    app.kubernetes.io/name: notes
 data:
   # Хранилище: PostgreSQL вместо файла
   STORE: postgres
@@ -661,7 +682,7 @@ kubectl -n notes describe secret notes-db
 
 Манифест этого Secret в репозиторий не кладём. Адрес `db` короткий: под и БД в одном namespace, DNS из [урока 5.3](03-services-dns.md).
 
-3. Замени `k8s/base/10-deployment.yaml` целиком. Метки остаются `app: notes`, как в [уроке 5.2](02-pods-deployments.md): селектор Deployment менять нельзя, и по нему находит поды Service из [урока 5.3](03-services-dns.md). Изменилось три вещи. Во-первых, добавлен `envFrom` с ConfigMap: все настройки теперь приходят оттуда. Во-вторых, `DATABASE_URL` берётся из Secret одним ключом (`secretKeyRef`), а не всем Secret. В-третьих, убраны прямые `env`-значения и том `emptyDir`: файловое хранилище больше не нужно. Подставь свой GitHub-пользователь вместо `<github-user>`:
+3. Замени `k8s/base/10-deployment.yaml` целиком. Метки остаются `app.kubernetes.io/name: notes`, как в [уроке 5.2](02-pods-deployments.md): селектор Deployment менять нельзя, и по нему находит поды Service из [урока 5.3](03-services-dns.md). Изменилось три вещи. Во-первых, добавлен `envFrom` с ConfigMap: все настройки теперь приходят оттуда. Во-вторых, `DATABASE_URL` берётся из Secret одним ключом (`secretKeyRef`), а не всем Secret. В-третьих, убраны прямые `env`-значения и том `emptyDir`: файловое хранилище больше не нужно. Подставь свой GitHub-пользователь вместо `<github-user>`:
 
 ```yaml
 apiVersion: apps/v1
@@ -670,16 +691,16 @@ metadata:
   name: notes
   namespace: notes
   labels:
-    app: notes
+    app.kubernetes.io/name: notes
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: notes
+      app.kubernetes.io/name: notes
   template:
     metadata:
       labels:
-        app: notes
+        app.kubernetes.io/name: notes
     spec:
       containers:
         - name: notes
@@ -717,7 +738,7 @@ PF=$!
 sleep 2
 curl -s -X POST localhost:8080/notes -d '{"text":"first in postgres"}'; echo
 kill $PF
-kubectl -n notes delete pod -l app=notes
+kubectl -n notes delete pod -l app.kubernetes.io/name=notes
 kubectl -n notes rollout status deployment/notes
 kubectl -n notes port-forward svc/notes 8080:8080 >/dev/null &
 PF=$!
@@ -785,7 +806,7 @@ debug
 - `Error: couldn't find key DATABASE_URL in Secret notes/notes-db` (статус пода `CreateContainerConfigError`): в Secret нет ключа `DATABASE_URL`. Повтори шаг 2.
 - `psycopg.OperationalError: connection failed: FATAL:  password authentication failed for user "notes"`: в `DATABASE_URL` не тот пароль, что внутри БД. Возьми пароль из `POSTGRES_PASSWORD` (шаг 2), а не придумывай новый.
 - Пароль содержит `/`, `@` или `+`: такой символ ломает разбор URL. Генерируй пароли `openssl rand -hex`: только цифры и буквы `a-f`.
-- `The Deployment "notes" is invalid: spec.selector: Invalid value ... field is immutable`: в Deployment изменили `selector`. Верни `app: notes`, как в уроке 5.2.
+- `The Deployment "notes" is invalid: spec.selector: Invalid value ... field is immutable`: в Deployment изменили `selector`. Верни `app.kubernetes.io/name: notes`, как в уроке 5.2.
 - `curl: (7) Failed to connect to localhost port 8080`: `port-forward` ещё не успел запуститься или уже завершён. Запусти его заново и подожди пару секунд.
 
 
@@ -822,7 +843,7 @@ bash /tmp/break-5.6.sh 1
 
 ```bash
 kubectl -n notes get pods
-kubectl -n notes describe pod -l app=notes | grep -A8 Events
+kubectl -n notes describe pod -l app.kubernetes.io/name=notes | grep -A8 Events
 kubectl -n notes logs deploy/notes --tail=20
 kubectl -n notes get secret notes-db -o jsonpath='{.data.DATABASE_URL}' | base64 -d | sed 's|//[^@]*@|//***@|'; echo
 kubectl -n notes get configmap notes-config -o yaml
