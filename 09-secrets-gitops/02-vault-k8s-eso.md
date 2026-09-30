@@ -198,7 +198,7 @@ ESO сам добавит `secret/data/` в начале пути, получи�
 | в `ClusterSecretStore` указал `role: notes-typo` | `invalid role name "notes-typo"` |
 | SA `notes` из namespace `default` (роль привязана к namespace `notes`) | `namespace not authorized` |
 | SA с другим именем, но в `notes` | `service account name not authorized` |
-| всё совпало, но политика роли не покрывает путь | `permission denied` уже после входа (код 403) |
+| всё совпало, но политика роли не покрывает путь | `permission denied` уже после входа (код 403, но в запросе к `secret/data/...`) |
 
 **Что путают:** «достаточно, чтобы SA назывался как надо». Имя без namespace ничего не значит: в разных namespace могут быть SA с одним именем.
 
@@ -220,7 +220,7 @@ Vault отклонит вход: `namespace not authorized`, ExternalSecret по
 **Как устроено.** Первый вопрос называется **аутентификация** (authentication): подтвердить личность. Второй **авторизация** (authorization): проверить права. В Vault они разделены:
 
 - Аутентификация: метод `kubernetes` проверяет JWT и роль. Сюда попадают ошибки вида `400 invalid role name` и `namespace not authorized`: Vault не признал личность или роль.
-- Авторизация: политика роли проверяет путь. Ошибка `403 permission denied`: личность признана, но путь политикой не разрешён.
+- Авторизация: политика роли проверяет путь. Ошибка `403 permission denied` на запрос к `secret/data/...`: личность признана, но путь политикой не разрешён. Осторожно: 403 отдаёт и сам вход через `auth/kubernetes/login` при неверном JWT или неудачном TokenReview. Поэтому смотри не только код, а URL запроса (`auth/kubernetes/login` или `secret/data/...`) и текст ошибки.
 
 **Разобранный пример.** ESO входит в Vault ролью `notes`, токен настоящий: аутентификация пройдена. Он читает `secret/data/billing/card`: политика `notes-read` покрывает только `secret/data/notes/*`. Результат: `403 permission denied`. Искать причину в JWT бессмысленно, надо смотреть политику. Обратный случай: роли `notes` нет вообще, Vault отвечает `400 invalid role name`, а о политике речь ещё не идёт: до неё очередь не дошла.
 
@@ -231,7 +231,7 @@ Vault отклонит вход: `namespace not authorized`, ExternalSecret по
 <details markdown="1">
 <summary>Ответ</summary>
 
-Политику (`vault policy read notes-read`). Код 403 приходит после успешного входа: личность признана, не хватает прав на путь.
+Политику (`vault policy read notes-read`). Если 403 пришёл на запрос к `secret/data/...`, вход уже прошёл и не хватает прав на путь. Но 403 бывает и у `auth/kubernetes/login` (плохой JWT), поэтому сверяй URL запроса и текст ошибки, а не один код.
 
 </details>
 
@@ -317,7 +317,7 @@ database = notes
 
 **Как устроено.** У каждого объекта Kubernetes есть поле `status`, в которое пишет контроллер. У `ExternalSecret` там список состояний (conditions). Главное называется `Ready`: `True` значит «синхронизировано», `False` значит «не получилось». Рядом причина (`reason`): `SecretSynced` при успехе, `SecretSyncedError` при ошибке. Команда `kubectl get externalsecret` показывает то же в колонках `STATUS` и `READY`. Подробный текст ошибки пишется в события, их читают командой `kubectl describe externalsecret <имя>`.
 
-**Разобранный пример.** `kubectl -n notes get externalsecret notes-db` даёт `SecretSynced True`: ESO прочитал Vault и собрал Secret. Если `SecretSyncedError False`, открывай `describe` и иди в конец: в блоке `Events` будет сообщение Vault, например `Code: 403 ... permission denied`. По первой цифре кода сразу понятно, какой слой сломан (предыдущий раздел).
+**Разобранный пример.** `kubectl -n notes get externalsecret notes-db` даёт `SecretSynced True`: ESO прочитал Vault и собрал Secret. Если `SecretSyncedError False`, открывай `describe` и иди в конец: в блоке `Events` будет сообщение Vault, например `Code: 403 ... permission denied`. Слой определяй по URL запроса (`auth/kubernetes/login` или `secret/data/...`) и тексту ошибки, а не по одному коду (предыдущий раздел).
 
 **Что путают.** Что `Ready True` гарантирует работающее приложение. Нет: это значит только, что Secret собран. Перезапущены ли поды и сменился ли пароль в базе, статус не скажет.
 
