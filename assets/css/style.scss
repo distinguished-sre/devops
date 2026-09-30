@@ -118,9 +118,14 @@ kbd {
 }
 .search-box input::placeholder { color: var(--muted); }
 .search-box input::-webkit-search-cancel-button { display: none; }
-.nav-home { display: block; padding: 8px 10px; color: var(--text); text-decoration: none; border-radius: 8px; font-weight: 700; }
-.nav-home:hover, .nav-home.current { background: var(--bg-2); }
-.nav-home.current { color: var(--accent-ink); }
+/* Кнопка на главную: заметная, чтобы из любого урока было видно, как вернуться к карте курса */
+.nav-home {
+  display: flex; align-items: center; justify-content: center; gap: 8px; margin: 0 0 12px; padding: 11px 14px;
+  border-radius: 10px; background: var(--accent); color: var(--on-accent); text-decoration: none; font-weight: 700; font-size: 15px;
+  transition: filter .2s;
+}
+.nav-home:hover { filter: brightness(1.08); }
+.nav-home.current { background: var(--bg-2); color: var(--accent-ink); box-shadow: inset 0 0 0 1px var(--line); }
 .nav-topic { margin: 2px 0; }
 .nav-topic summary {
   display: flex; align-items: baseline; gap: 8px; padding: 8px 10px; cursor: pointer; list-style: none;

@@ -40,7 +40,7 @@ layout: default
           <a class="hbtn hbtn-primary" href="{{ first_url | relative_url }}" data-continue>
             <span data-continue-text>Начать с урока {{ first_lesson.id }}</span> <span class="arr" aria-hidden="true">→</span>
           </a>
-          <a class="hbtn hbtn-ghost" href="#map">Карта курса</a>
+          <a class="hbtn hbtn-ghost" href="#map">Карта курса <span class="arr" aria-hidden="true">↓</span></a>
         </div>
         <p class="hero-progress in" style="--i:4" data-home-progress hidden></p>
         <dl class="stats in" style="--i:4">
@@ -57,9 +57,6 @@ layout: default
           <div class="term-bar"><i></i><i></i><i></i><span>~/notes</span><span class="term-topic" data-term-topic>тема 1</span></div>
           <pre class="term-body" data-term="hero"></pre>
         </div>
-        <div class="float-chip fc-1">✓ CI прошёл</div>
-        <div class="float-chip fc-2">● 3/3 Running</div>
-        <div class="float-chip fc-3">SLO 99.9%</div>
       </div>
     </div>
     <a class="scroll-hint" href="#what" aria-label="Листать дальше"><span></span></a>
@@ -149,7 +146,7 @@ layout: default
 
       <div class="timebar reveal" role="img" aria-label="Распределение {{ hours_round }} часов по темам">
         {%- for t in site.data.course.topics %}
-        <span class="seg" data-seg="{{ t.n }}" style="flex-grow: {{ t.time | remove: ' ч' }}; --n:{{ t.n }}; --pct:{{ t.n | minus: 1 | times: 11.1 }}%" title="Тема {{ t.n }}: {{ t.title | escape }}, {{ t.time }}"><b>{{ t.n }}</b><i>{{ t.time }}</i></span>
+        <span class="seg" data-seg="{{ t.n }}" style="flex-grow: {{ t.time | remove: ' ч' }}; --n:{{ t.n }}; --pct:{{ t.n | minus: 1 | times: 11.1 }}%" title="Тема {{ t.n }}: {{ t.title | escape }}, {{ t.time }}"><b>{{ t.n }}</b></span>
         {%- endfor %}
       </div>
 
@@ -198,7 +195,7 @@ layout: default
           </div>
           <div class="rule reveal" style="--d:2">
             <span class="rn">03</span>
-            <div><h3>Ломай специально</h3><p>Задание «сломай и почини» учит главному навыку инженера: находить причину, а не бороться с симптомом. Пример справа.</p></div>
+            <div><h3>Ломай специально</h3><p>Задание «сломай и почини» учит главному навыку инженера: находить причину, а не бороться с симптомом. Пример рядом.</p></div>
           </div>
           <div class="rule reveal" style="--d:3">
             <span class="rn">04</span>
@@ -266,7 +263,6 @@ layout: default
       <h2 id="final-h" class="display reveal">Первый урок займёт пару часов</h2>
       <p class="lead2 reveal">Получишь машину с Linux, освоишься в терминале и запустишь первую версию «Заметок». Дальше каждый урок добавляет по шагу.</p>
       <p class="reveal"><a class="hbtn hbtn-primary" href="{{ first_url | relative_url }}" data-continue><span data-continue-text>Начать с урока {{ first_lesson.id }}</span> <span class="arr" aria-hidden="true">→</span></a></p>
-      <p class="keys reveal"><kbd>/</kbd> поиск урока · <kbd>←</kbd> <kbd>→</kbd> между уроками</p>
     </div>
   </section>
 </div>
