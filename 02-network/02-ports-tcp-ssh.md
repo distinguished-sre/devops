@@ -815,7 +815,7 @@ ssh notes-vm 'echo зашёл по ключу'
 
 ```text
 -rw------- 1 ubuntu ubuntu 399 Sep 30 11:53 /home/ubuntu/.ssh/id_ed25519
--rw-r--r-- 1 ubuntu  ubuntu   95 Sep 30 11:53 /home/ubuntu/.ssh/id_ed25519.pub
+-rw-r--r-- 1 ubuntu ubuntu  95 Sep 30 11:53 /home/ubuntu/.ssh/id_ed25519.pub
 256 SHA256:bMADwDE08mIDiQxdx+4nu/Trxw1irOpYipGURweYFtk notes-ubuntu (ED25519)
 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIN3SgUPHvo3TmW03J/HGduNk/cKyc1ccHJIIE95dZxCG notes-ubuntu
 ```
@@ -838,7 +838,7 @@ and check to make sure that only the key(s) you wanted were added.
 ```text
 1b20d9f21c72
 drwx------ 2 ubuntu ubuntu 4096 Sep 30 11:53 /home/ubuntu/.ssh
--rw------- 1 ubuntu  ubuntu  95 Sep 30 11:53 /home/ubuntu/.ssh/authorized_keys
+-rw------- 1 ubuntu ubuntu 95 Sep 30 11:53 /home/ubuntu/.ssh/authorized_keys
 ```
 
 Вывод шага 5:

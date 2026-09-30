@@ -1334,8 +1334,8 @@ notes: файлов 2
 total 4
 -rw-r--r-- 1 ubuntu ubuntu 47 Sep 30 12:12 demo.log.1.gz
 total 8
--rw-r--r-- 1 ubuntu  ubuntu  34 Sep 30 12:12 demo.log.1.gz
--rw-r--r-- 1 ubuntu  ubuntu  47 Sep 30 12:12 demo.log.2.gz
+-rw-r--r-- 1 ubuntu ubuntu 34 Sep 30 12:12 demo.log.1.gz
+-rw-r--r-- 1 ubuntu ubuntu 47 Sep 30 12:12 demo.log.2.gz
 вторая
 первая строка
 ```

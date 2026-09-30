@@ -355,7 +355,7 @@ $ tar tzf /tmp/notes-0.9.3.tar.gz | grep -E '\.env|\.venv' | head
 ./.env
 $ git archive --format=tar.gz --prefix=notes-0.9.3/ -o /tmp/good.tar.gz HEAD
 $ ls -l /tmp/good.tar.gz
--rw-r--r-- 1 ubuntu  ubuntu  6870 Sep 30 12:11 /tmp/good.tar.gz              <- 7 КБ: только коммит
+-rw-r--r-- 1 ubuntu ubuntu 6870 Sep 30 12:11 /tmp/good.tar.gz              <- 7 КБ: только коммит
 ```
 
 Обрати внимание: `git status` при этом не показал ни `.env`, ни `.venv`, потому что они в `.gitignore`. Git их «не видит», а `tar` по папке видит. Поэтому «`.gitignore` защищает от утечки» верно только для команд git, но не для `tar`.
@@ -1006,7 +1006,7 @@ notes-0.2.0.tar.gz.sha256
 
 ```text
 -rw-r--r-- 1 ubuntu ubuntu 6870 Sep 30 12:11 notes-0.2.0.tar.gz
--rw-r--r-- 1 ubuntu  ubuntu    85 Sep 30 12:11 notes-0.2.0.tar.gz.sha256
+-rw-r--r-- 1 ubuntu ubuntu   85 Sep 30 12:11 notes-0.2.0.tar.gz.sha256
 notes-0.2.0.tar.gz: OK
 notes-0.2.0/
 notes-0.2.0/.github/

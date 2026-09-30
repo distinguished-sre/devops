@@ -707,7 +707,7 @@ ls: cannot access 'notes.txt': No such file or directory
 разово: [5]
 после: []
 bash: ./greet.sh: Permission denied
--rwxr-xr-x 1 ubuntu  ubuntu  224 Sep 30 11:53 greet.sh
+-rwxr-xr-x 1 ubuntu ubuntu 224 Sep 30 11:53 greet.sh
 Привет, мир! Аргументов: 0
 Привет, Анна! Аргументов: 1
 Привет, Борис! Аргументов: 0
