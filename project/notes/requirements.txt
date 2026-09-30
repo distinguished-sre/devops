@@ -1,0 +1,6 @@
+# Метрики из урока 8.2 (v5+)
+prometheus_client==0.26.0
+# API, SDK и OTLP/HTTP-экспортёр из урока 8.8 (v7+)
+opentelemetry-api==1.45.0
+opentelemetry-sdk==1.45.0
+opentelemetry-exporter-otlp-proto-http==1.45.0

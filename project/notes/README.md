@@ -6,19 +6,19 @@
 
 ## Версии
 
-| Версия | Урок, где появилась | Что добавлено |
-| --- | --- | --- |
-| [v1](versions/v1.py) | [1.1: первый сервер](../../01-linux/01-first-server-shell.md), строка 375 | `GET /`, `GET /notes`, `POST /notes`; список в памяти, access-лог в stderr; `HOST`, `PORT`, `APP_VERSION`, `LOG_LEVEL` |
-| [v2](versions/v2.py) | [1.3: пользователи и права](../../01-linux/03-users-permissions.md), строка 233 | JSON-строки в файле `NOTES_DATA`, `/healthz` и `/readyz`; данные переживают перезапуск |
-| [v2.1](versions/v2.1.py) | [1.4: процессы и сигналы](../../01-linux/04-processes-signals.md), строка 338 | SIGTERM/SIGINT, сообщения `shutting down` и `stopped`, ожидание запросов до 10 секунд, обычная остановка с кодом 0 |
-| [v2.2](versions/v2.2.py) | [1.5: память и CPU](../../01-linux/05-disk-memory-cpu.md), строка 378; контракт из [1.6](../../01-linux/06-bash-basics.md), строка 497 | `/leak?mb=N`, `/burn?sec=N`, `LEAK_MAX_MB`; 405 для PUT по тестам урока 1.6 |
-| [v3](versions/v3.py) | [2.4: HTTP](../../02-network/04-http.md), строка 325 | HTTP/1.1, общий `_send`, HEAD, `/headers`, `/slow?sec=N`, `/error`, 405 и `Allow` |
-| [v4](versions/v4.py) | [4.4: PostgreSQL](../../04-docker/04-sql-postgres-basics.md), строка 383 | `STORE=file/postgres`, `DATABASE_URL`, схема PostgreSQL, readiness по базе, `/slowsql?sec=N` |
-| [v4.1](versions/v4.1.py) | [5.7: пробы и выкатки](../../05-kubernetes/07-probes-resources-rollouts.md), строка 170 | `STARTUP_DELAY`, `READY_FAIL`; неправильные целые значения завершают процесс с кодом 2 |
-| [v5](versions/v5.py) | [8.2: Prometheus](../../08-observability/02-prometheus-basics.md), строка 343 | `/metrics`: счётчики запросов, гистограммы задержек, число заметок, версия сборки; неизвестный путь в метриках — `other` |
-| [v6](versions/v6.py) | [8.7: JSON-логи](../../08-observability/07-logs-loki-alloy.md), строка 143 | JSON в stdout, числовые `status` и `dur_ms`, одна запись на запрос; пробы и `/metrics` не шумят в access-логе |
-| [v7](versions/v7.py) | [8.8: трейсинг](../../08-observability/08-tracing.md), строка 303 | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, продолжение `traceparent`, серверные и PostgreSQL-спаны, `trace_id` в логах |
-| [v7.1](versions/v7.1.py) | [9.6: progressive delivery](../../09-secrets-gitops/06-progressive-delivery.md), строка 371 | `FAIL_RATE`: искусственные 500 только на GET/POST `/notes`; пробы и метрики продолжают работать |
+| Версия | Урок, где появилась | Что добавлено | Зависимости |
+| --- | --- | --- | --- |
+| [v1](versions/v1.py) | [1.1: первый сервер](../../01-linux/01-first-server-shell.md), строка 375 | `GET /`, `GET /notes`, `POST /notes`; список в памяти, access-лог в stderr; `HOST`, `PORT`, `APP_VERSION`, `LOG_LEVEL` | Стандартная библиотека |
+| [v2](versions/v2.py) | [1.3: пользователи и права](../../01-linux/03-users-permissions.md), строка 233 | JSON-строки в файле `NOTES_DATA`, `/healthz` и `/readyz`; данные переживают перезапуск | Стандартная библиотека |
+| [v2.1](versions/v2.1.py) | [1.4: процессы и сигналы](../../01-linux/04-processes-signals.md), строка 338 | SIGTERM/SIGINT, сообщения `shutting down` и `stopped`, ожидание запросов до 10 секунд, обычная остановка с кодом 0 | Стандартная библиотека |
+| [v2.2](versions/v2.2.py) | [1.5: память и CPU](../../01-linux/05-disk-memory-cpu.md), строка 378; контракт из [1.6](../../01-linux/06-bash-basics.md), строка 497 | `/leak?mb=N`, `/burn?sec=N`, `LEAK_MAX_MB`; 405 для PUT по тестам урока 1.6 | Стандартная библиотека |
+| [v3](versions/v3.py) | [2.4: HTTP](../../02-network/04-http.md), строка 325 | HTTP/1.1, общий `_send`, HEAD, `/headers`, `/slow?sec=N`, `/error`, 405 и `Allow` | Стандартная библиотека |
+| [v4](versions/v4.py) | [4.4: PostgreSQL](../../04-docker/04-sql-postgres-basics.md), строка 383 | `STORE=file/postgres`, `DATABASE_URL`, схема PostgreSQL, readiness по базе, `/slowsql?sec=N` | `psycopg` только для PostgreSQL |
+| [v4.1](versions/v4.1.py) | [5.7: пробы и выкатки](../../05-kubernetes/07-probes-resources-rollouts.md), строка 170 | `STARTUP_DELAY`, `READY_FAIL`; неправильные целые значения завершают процесс с кодом 2 | `psycopg` только для PostgreSQL |
+| [v5](versions/v5.py) | [8.2: Prometheus](../../08-observability/02-prometheus-basics.md), строка 343 | `/metrics`: счётчики запросов, гистограммы задержек, число заметок, версия сборки; неизвестный путь в метриках — `other` | `prometheus_client`; `psycopg` для PostgreSQL |
+| [v6](versions/v6.py) | [8.7: JSON-логи](../../08-observability/07-logs-loki-alloy.md), строка 143 | JSON в stdout, числовые `status` и `dur_ms`, одна запись на запрос; пробы и `/metrics` не шумят в access-логе | `prometheus_client`; `psycopg` для PostgreSQL |
+| [v7](versions/v7.py) | [8.8: трейсинг](../../08-observability/08-tracing.md), строка 303 | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, продолжение `traceparent`, серверные и PostgreSQL-спаны, `trace_id` в логах | `prometheus_client`, три пакета OpenTelemetry; `psycopg` для PostgreSQL |
+| [v7.1](versions/v7.1.py) | [9.6: progressive delivery](../../09-secrets-gitops/06-progressive-delivery.md), строка 371 | `FAIL_RATE`: искусственные 500 только на GET/POST `/notes`; пробы и метрики продолжают работать | `prometheus_client`, три пакета OpenTelemetry; `psycopg` для PostgreSQL |
 
 ## Скачать и запустить
 
@@ -42,10 +42,25 @@ curl -fsS http://127.0.0.1:8080/notes
 
 В v1 `/healthz` ещё нет: проверяй `/`. По умолчанию адрес `127.0.0.1:8080`, версия ответа `dev`; начиная с v2 файл данных — `/var/lib/notes/notes.txt`. Родительский каталог файла должен существовать и быть доступен на запись. Для контейнера задай `HOST=0.0.0.0`.
 
-Все версии в файловом режиме работают на стандартной библиотеке, в том числе метрики и трейсинг. Начиная с v4 для PostgreSQL нужна зависимость из урока 4.4:
+## Зависимости по версиям
+
+В файловом режиме v1–v4.1 используют стандартную библиотеку. С v5 нужен `prometheus_client`, с v7 ещё три пакета OpenTelemetry. Импорты этих пакетов безусловные, как в уроках: даже с пустым `OTEL_EXPORTER_OTLP_ENDPOINT` пакеты должны быть установлены, хотя спаны не создаются и не экспортируются.
+
+Создай виртуальное окружение (venv), отдельный каталог с Python и пакетами проекта:
 
 ```bash
 python3 -m venv .venv
+# Для v5 и v6: метрики Prometheus
+.venv/bin/python -m pip install 'prometheus_client==0.26.0'
+# Для v7 и v7.1: дополнительно API, SDK и экспортёр трейсов
+.venv/bin/python -m pip install 'opentelemetry-api==1.45.0' 'opentelemetry-sdk==1.45.0' 'opentelemetry-exporter-otlp-proto-http==1.45.0'
+```
+
+Урок 8.2 предлагает закрепить установленную версию клиента, урок 8.8 перечисляет пакеты без номеров. Здесь выбраны стабильные выпуски на 2026-09-30: [prometheus_client 0.26.0](https://pypi.org/project/prometheus-client/0.26.0/), [opentelemetry-api 1.45.0](https://pypi.org/project/opentelemetry-api/1.45.0/), [opentelemetry-sdk 1.45.0](https://pypi.org/project/opentelemetry-sdk/1.45.0/), [opentelemetry-exporter-otlp-proto-http 1.45.0](https://pypi.org/project/opentelemetry-exporter-otlp-proto-http/1.45.0/). Все четыре зависимости также записаны в [requirements.txt](requirements.txt): из корня курса их можно установить командой `.venv/bin/python -m pip install -r project/notes/requirements.txt`. После установки запускай приложение через `.venv/bin/python app.py`.
+
+Начиная с v4 для `STORE=postgres` дополнительно нужен драйвер из урока 4.4. Диапазон версий сохранён, как в уроке; в `STORE=file` драйвер не требуется:
+
+```bash
 .venv/bin/python -m pip install 'psycopg[binary]>=3.2,<4'
 STORE=postgres DATABASE_URL='postgresql://notes:password@127.0.0.1:5432/notes' \
   HOST=127.0.0.1 PORT=8080 APP_VERSION=0.4.0 .venv/bin/python app.py
@@ -82,39 +97,42 @@ STORE=postgres DATABASE_URL='postgresql://notes:password@127.0.0.1:5432/notes' \
 5. `01-linux/06-bash-basics.md:497`, `:534` требуют 405 для PUT уже на v2.2, хотя фрагменты уроков 1.3–1.5 оставляют стандартный 501. В v2.2 добавлен 405 для неподдерживаемых методов; в v3+ — общий разбор методов с `Allow` из `02-network/04-http.md:389`. Дословные v1/v2 сохраняют 501.
 6. `01-linux/06-bash-basics.md:345` перечисляет `STORE` среди настроек v2.2, но выбор PostgreSQL впервые вводится в `04-docker/04-sql-postgres-basics.md:425`. `STORE` начинает действовать с v4, до этого хранение только в файле.
 7. `02-network/04-http.md:350`, `:361`, `:424`: фрагмент учитывает HEAD при отправке тела, но не добавляет `do_HEAD`; без него сервер отвечает 501. В v3+ HEAD использует маршрут GET и возвращает заголовки без тела.
-8. `04-docker/04-sql-postgres-basics.md:423`: безусловный `import psycopg` требует пакет даже при `STORE=file`. Для выполнения условия о стандартной библиотеке импорт перенесён в ветку `STORE=postgres`. SQL, параметры запросов и `connect_timeout=3` сохранены.
+8. `04-docker/04-sql-postgres-basics.md:423`: безусловный `import psycopg` требует пакет даже при `STORE=file`. Чтобы файловое хранилище не требовало драйвера БД, импорт перенесён в ветку `STORE=postgres`. SQL, параметры запросов и `connect_timeout=3` сохранены.
 9. `04-docker/04-sql-postgres-basics.md:392`, `:480`, `:545`: после неудачного `pg_init()` обещано восстановление readiness, но `SELECT 1` не создаёт таблицу; отдельно предлагается применить схему вручную. В v4+ создание схемы повторяется при readiness/операциях с заметками до первого успеха, поэтому старт раньше новой БД не оставляет сервис с отсутствующей таблицей.
 10. `05-kubernetes/07-probes-resources-rollouts.md:179`, `:199`, `:202`: описание отсчитывает `READY_FAIL` после старта, а фрагмент начинает отсчёт до `STARTUP_DELAY`. В v4.1+ отсчёт начинается после паузы и инициализации хранилища, непосредственно перед открытием порта. `READY_FAIL=1` сохраняет секунду 503 даже при `STARTUP_DELAY=1`.
-11. `08-observability/02-prometheus-basics.md:347`, `:360` вводят `prometheus_client`, что выходит за заданное ограничение на зависимости. В v5+ метрики реализованы на stdlib: сохранены четыре семейства `notes_*`, метки, корзины, HELP/TYPE и обновление числа заметок. Автоматические метрики Python/process и дополнительные ряды `_created` стороннего клиента не воспроизводятся: команды курса их не используют.
+11. `08-observability/02-prometheus-basics.md:347`, `:360`: v5+ следует уроку и безусловно импортирует `prometheus_client`. Используются `Counter`, `Histogram`, `Gauge`, общий реестр `generate_latest()` и `CONTENT_TYPE_LATEST`. Сохранены четыре семейства `notes_*`, метки, корзины и обновление числа заметок; клиент также добавляет стандартные метрики Python/process и ряды `_created`.
 12. `08-observability/07-logs-loki-alloy.md:192`: `log_request(self, status, started)` несовместим с вызовом stdlib `log_request(code, size)` и заменяет учёт метрик из `08-observability/02-prometheus-basics.md:391`. В v6+ учёт метрик оставлен в штатном `log_request`, а JSON-access-лог вынесен в `_access_log` после ответа.
 13. `08-observability/07-logs-loki-alloy.md:178` оставляет пробел после двоеточия в JSON, а `08-observability/08-tracing.md:429` ищет компактное `"trace_id":"..."`. С v6 JSON выводится компактно: `jq` и регулярное выражение Grafana видят нужные поля.
-14. `08-observability/08-tracing.md:302`, `:323` вводят пакеты OpenTelemetry и пакетный protobuf-экспорт. Для заданного ограничения на зависимости v7+ использует минимальный OTLP/HTTP JSON из практики этого же урока (`:257`) и [спецификации OTLP](https://opentelemetry.io/docs/specs/otlp/#json-protobuf-encoding). Сохранены `service.name`, W3C `traceparent` версии `00`, серверные спаны, дочерние `db`, `trace_id` в логах и отключение по пустому endpoint. Экспорт выполняется после HTTP-ответа с таймаутом 3 секунды, без пакетного SDK, повторных отправок и прочих возможностей OpenTelemetry; несэмплируемый входящий трейс не экспортируется.
+14. `08-observability/08-tracing.md:302`, `:323`: v7+ следует уроку и безусловно импортирует OpenTelemetry API, SDK и OTLP/HTTP-экспортёр. `Resource.create` задаёт `service.name`, `TracerProvider` и `BatchSpanProcessor` отправляют protobuf на `<OTEL_EXPORTER_OTLP_ENDPOINT>/v1/traces`. `TraceContextTextMapPropagator` продолжает входящий `traceparent`; активные серверные спаны и дочерние `db` создаются через `start_as_current_span`, а JSON-лог получает `trace_id` из текущего контекста SDK. Пустой endpoint отключает трейсинг; несэмплируемый входящий трейс не экспортируется. При штатной остановке SDK отправляет оставшуюся очередь после завершения запросов.
 
 JSON-ответы сравнивай по содержимому: например, в исходном v2 используется пробел после `:`. Даты в `created_at` и логах зависят от времени запуска, как и предупреждают уроки.
 
 ## Проверка результата
 
-Из корня курса, с Python 3.12+ и установленным `curl`:
+Из корня курса, с Python 3.12+ и установленным `curl`, для полного прогона:
 
 ```bash
-python3 -m py_compile project/notes/versions/*.py project/notes/check_versions.py
-python3 project/notes/check_versions.py
+python3 -m venv .venv
+.venv/bin/python -m pip install -r project/notes/requirements.txt
+.venv/bin/python -m py_compile project/notes/versions/*.py project/notes/check_versions.py
+.venv/bin/python project/notes/check_versions.py
 ```
 
-`check_versions.py` запускает каждую версию отдельным процессом на свободном порту с `HOST=127.0.0.1`, `PORT`, `APP_VERSION=test`, отдельным `NOTES_DATA` и `STORE=file`. Все запросы к приложению выполняются настоящим `curl`. Дополнительные прогоны задают переменные сбоев и адрес локального OTLP-приёмника. Процессы завершаются, временные данные внутри `project/notes/` удаляются автоматически.
+`check_versions.py` запускает каждую версию отдельным процессом на свободном порту с `HOST=127.0.0.1`, `PORT`, `APP_VERSION=test`, отдельным `NOTES_DATA` и `STORE=file`. Все запросы к приложению выполняются настоящим `curl`. Дополнительные прогоны задают переменные сбоев и адрес локального OTLP/HTTP protobuf-приёмника. Если пакетов нет, проверка печатает команду установки и пропускает требующие их версии во всех сценариях; синтаксис проверяется для всех 11 файлов. Итог показывает число проверенных и пропущенных версий. Процессы завершаются, временные данные внутри `project/notes/` удаляются автоматически.
 
 Результат проверки 2026-09-30, Python 3.12.14:
 
 - **Все 11 файлов:** `python3 -m py_compile` — OK; v1/v2 дополнительно сверены дословно с полными блоками уроков.
+- **Без зависимостей:** v1–v4.1 проходят проверку (7 из 11), v5–v7.1 пропускаются с командами установки, код выхода 0.
 - **v1:** `/` 200, GET `/notes` 200, POST 201, ошибки JSON 400, неизвестный путь 404; после перезапуска список пуст, SIGINT — 0.
 - **v2 и v2.1:** предыдущие маршруты, `/healthz` 200, `/readyz` 200, файл сохраняется после перезапуска; SIGTERM в v2 — завершение сигналом, в v2.1 — 0 и ожидаемые логи.
 - **v2.2:** всё предыдущее, PUT 405; `/leak?mb=10` — 200 и `leaked total 10 MB`, превышение лимита/нечисловые параметры — 400; `/burn?sec=1` — 200 и `burned 1`, длительность ≥ 1 секунды.
 - **v3:** всё предыдущее, HTTP/1.1 и правильный `Content-Length`, HEAD без тела, `/headers` отражает заголовок, `/error` 500; `/slow?sec=1` — `slept 1`, длительность ≥ 1 секунды; неверные параметры — 400, методы — 405 с `Allow`.
 - **v4:** всё предыдущее в `STORE=file`, `/slowsql` — 501 `postgres only`; запуск без установленного psycopg работает.
 - **v4.1:** всё предыдущее; до `STARTUP_DELAY` порт закрыт; `READY_FAIL=-1` даёт 503 при живом `/healthz`; `READY_FAIL=1` проходит 503 → 200 после паузы запуска; неверные целые значения — код 2.
-- **v5:** всё предыдущее; `/metrics` 200, версия `test`, число заметок 2, счётчики POST/ошибок, накопительные корзины `+Inf`; неизвестные пути объединены в `other`.
+- **v5:** всё предыдущее; `/metrics` 200 с `CONTENT_TYPE_LATEST` (`text/plain; version=1.0.0; charset=utf-8` в клиенте 0.26.0), текст разбирается парсером `prometheus_client`, типы четырёх семейств `notes_*` соответствуют уроку; версия `test`, число заметок 2, счётчики POST/ошибок, накопительные корзины `+Inf`; неизвестные пути объединены в `other`.
 - **v6:** всё предыдущее; stdout состоит из JSON, `status`/`dur_ms` — числа, служебные запросы не пишутся в access-лог, штатная остановка тоже пишет JSON.
-- **v7:** всё предыдущее; curl с `traceparent` сохраняет trace ID в логах и отправляет серверные спаны POST/GET на локальный `/v1/traces`, с правильным родителем и `service.name`; в файловом режиме `db` отсутствует.
+- **v7 и v7.1:** всё предыдущее; curl с `traceparent` (в том числе `Traceparent`) сохраняет trace ID в логах. Пакетный protobuf-экспорт на локальный `/v1/traces` содержит серверные спаны POST/GET, правильного родителя и `service.name`; в файловом режиме `db` отсутствует. Несэмплируемый трейс остаётся в логах, но не экспортируется; неверный заголовок создаёт новый трейс, 500 помечает спан ошибкой. Пустой endpoint не добавляет `trace_id` в логи. Очередь отправляется при SIGTERM.
 - **v7.1:** всё предыдущее; `FAIL_RATE=0` позволяет операции; при `FAIL_RATE=1` GET/POST `/notes` дают 500 `injected failure`, запись не сохраняется, `/healthz`, `/readyz`, `/metrics` — 200; неверные значения, NaN и infinity — код 2.
 - **v3–v7.1:** SIGTERM во время принятого, но ещё не законченного POST дожидается тела, возвращает 201 и завершает процесс с кодом 0.
 - **v4–v7.1 с psycopg 3.3.6:** отдельный прогон с недоступным PostgreSQL — сервер остаётся жив, `/healthz` 200, `/readyz` 503, операции с заметками и `/slowsql?sec=0` — 500, недопустимые `sec` — 400, метрики v5+ доступны.

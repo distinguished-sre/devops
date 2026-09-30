@@ -47,7 +47,7 @@ topics:
       - id: "2.1"
         slug: 01-addresses-routes
         title: "Адреса и маршруты: IP, подсети, шлюз, NAT"
-        time: "2 ч"
+        time: "3 ч"
       - id: "2.2"
         slug: 02-ports-tcp-ssh
         title: "Порты, TCP и SSH: как программы находят друг друга"

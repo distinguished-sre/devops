@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 """Заметки v7.1: OTLP/HTTP и искусственные ошибки FAIL_RATE."""
 import json
-import re
 import random
-import secrets
 from contextlib import contextmanager
-from urllib.request import Request, urlopen
 import logging
 import signal
 import os
@@ -15,6 +12,15 @@ import time                                  # для busy-цикла в /burn
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
+
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge,
+                               Histogram, generate_latest)
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.http.trace_exporter import OTLPSpanExporter
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 VERSION = os.environ.get("APP_VERSION", "dev")
 HOST = os.environ.get("HOST", "127.0.0.1")
@@ -36,6 +42,10 @@ class JsonFormatter(logging.Formatter):
         }
         # дополнительные поля приходят через extra={"fields": {...}}
         entry.update(getattr(record, "fields", {}))
+        # Лог пишется внутри активного спана: его trace_id связывает лог и трейс.
+        span_ctx = trace.get_current_span().get_span_context()
+        if span_ctx.is_valid:
+            entry["trace_id"] = format(span_ctx.trace_id, "032x")
         return json.dumps(entry, ensure_ascii=False, separators=(",", ":"))
 
 
@@ -91,7 +101,7 @@ LEAK_MAX_MB = int(os.environ.get("LEAK_MAX_MB", "1024"))   # потолок су
 STORE = os.environ.get("STORE", "file")
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# В файловом режиме сторонних зависимостей нет.
+# Драйвер PostgreSQL нужен только при STORE=postgres.
 if STORE == "postgres":
     try:
         import psycopg
@@ -205,14 +215,19 @@ def initialize_storage():
             log.warning("база пока недоступна: %s", e)
 
 
-# Метрики из урока 8.2: текстовый формат Prometheus без стороннего клиента.
+# Метрики из урока 8.2: реестр prometheus_client и текстовый /metrics.
 KNOWN_ROUTES = {"/", "/notes", "/healthz", "/readyz", "/headers", "/slow",
                 "/error", "/leak", "/burn", "/slowsql", "/metrics"}
-BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
-METRICS_LOCK = threading.Lock()
-HTTP_REQUESTS = {}
-HTTP_DURATION = {}
-NOTES_TOTAL = 0
+HTTP_REQUESTS = Counter(
+    "notes_http_requests_total", "Число HTTP-запросов",
+    ["method", "path", "status"])
+HTTP_DURATION = Histogram(
+    "notes_http_request_duration_seconds", "Длительность запроса, секунды",
+    ["method", "path"],
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10))
+NOTES_TOTAL = Gauge("notes_notes_total", "Сколько заметок сохранено")
+BUILD_INFO = Gauge("notes_build_info", "Версия сборки", ["version"])
+NOTES_TOTAL_LOCK = threading.Lock()
 
 
 def route_label(path):
@@ -220,146 +235,59 @@ def route_label(path):
     return path if path in KNOWN_ROUTES else "other"
 
 
-def record_request(method, path, status, duration):
-    with METRICS_LOCK:
-        key = (method, route_label(path), str(status))
-        HTTP_REQUESTS[key] = HTTP_REQUESTS.get(key, 0) + 1
-        hist = HTTP_DURATION.setdefault(key[:2], [0, 0.0, [0] * len(BUCKETS)])
-        hist[0] += 1
-        hist[1] += duration
-        for i, bound in enumerate(BUCKETS):
-            if duration <= bound:
-                hist[2][i] += 1
-
-
 def update_notes_total():
-    global NOTES_TOTAL
-    # Порядок блокировок один: метрики, затем файловое хранилище.
-    with METRICS_LOCK:
-        NOTES_TOTAL = len(list_notes())
+    # Чтение и обновление идут по очереди: старый результат не затрёт новый.
+    with NOTES_TOTAL_LOCK:
+        NOTES_TOTAL.set(len(list_notes()))
 
 
-def metric_labels(**values):
-    def escape(value):
-        return str(value).replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
-    return "{" + ",".join(f'{key}="{escape(value)}"' for key, value in values.items()) + "}"
+# OpenTelemetry SDK из урока 8.8: пакетный экспорт OTLP/HTTP protobuf.
+def setup_tracing():
+    """Включает трейсинг, только если задан OTEL_EXPORTER_OTLP_ENDPOINT."""
+    endpoint = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+    if not endpoint:
+        return None
+    resource = Resource.create({"service.name": os.environ.get("OTEL_SERVICE_NAME", "notes")})
+    provider = TracerProvider(resource=resource)
+    # OTLP/HTTP: путь /v1/traces дописывается к адресу
+    provider.add_span_processor(BatchSpanProcessor(
+        OTLPSpanExporter(endpoint=endpoint.rstrip("/") + "/v1/traces")))
+    trace.set_tracer_provider(provider)
+    return trace.get_tracer("notes")
 
 
-def generate_metrics():
-    lines = [
-        "# HELP notes_http_requests_total Число HTTP-запросов",
-        "# TYPE notes_http_requests_total counter",
-    ]
-    with METRICS_LOCK:
-        for (method, path, status), count in sorted(HTTP_REQUESTS.items()):
-            labels = metric_labels(method=method, path=path, status=status)
-            lines.append(f"notes_http_requests_total{labels} {float(count)}")
-        lines += [
-            "# HELP notes_http_request_duration_seconds Длительность запроса, секунды",
-            "# TYPE notes_http_request_duration_seconds histogram",
-        ]
-        for (method, path), (count, total, buckets) in sorted(HTTP_DURATION.items()):
-            labels = metric_labels(method=method, path=path)
-            name = "notes_http_request_duration_seconds"
-            for bound, value in zip(BUCKETS, buckets):
-                bucket_labels = metric_labels(method=method, path=path, le=float(bound))
-                lines.append(f"{name}_bucket{bucket_labels} {float(value)}")
-            bucket_labels = metric_labels(method=method, path=path, le="+Inf")
-            lines.append(f"{name}_bucket{bucket_labels} {float(count)}")
-            lines.append(f"{name}_count{labels} {float(count)}")
-            lines.append(f"{name}_sum{labels} {total}")
-        lines += [
-            "# HELP notes_notes_total Сколько заметок сохранено",
-            "# TYPE notes_notes_total gauge",
-            f"notes_notes_total {float(NOTES_TOTAL)}",
-            "# HELP notes_build_info Версия сборки",
-            "# TYPE notes_build_info gauge",
-            f"notes_build_info{metric_labels(version=VERSION)} 1.0",
-        ]
-    return "\n".join(lines) + "\n"
-
-
-# Минимальный OTLP/HTTP JSON из урока 8.8, без пакетов OpenTelemetry.
-OTEL_ENDPOINT = os.environ.get("OTEL_EXPORTER_OTLP_ENDPOINT", "").rstrip("/")
-OTEL_SERVICE_NAME = os.environ.get("OTEL_SERVICE_NAME", "notes")
-TRACE_CONTEXT = threading.local()
-
-
-def new_span(name, trace_id, parent_id, kind):
-    span = {
-        "traceId": trace_id, "spanId": secrets.token_hex(8), "name": name,
-        "kind": kind, "startTimeUnixNano": str(time.time_ns()),
-    }
-    if parent_id:
-        span["parentSpanId"] = parent_id
-    return span
+PROPAGATOR = TraceContextTextMapPropagator()
+tracer = setup_tracing()
 
 
 @contextmanager
 def db_span():
-    context = getattr(TRACE_CONTEXT, "current", None)
-    if context is None:
+    # Без серверного спана (например, при старте) отдельный трейс БД не нужен.
+    if tracer is None or not trace.get_current_span().get_span_context().is_valid:
         yield
         return
-    span = new_span("db", context["server"]["traceId"], context["server"]["spanId"], 3)
-    try:
+    with tracer.start_as_current_span("db"):
         yield
-    except Exception:
-        span["status"] = {"code": 2}
-        raise
-    finally:
-        span["endTimeUnixNano"] = str(time.time_ns())
-        context["spans"].append(span)
-
-
-def export_spans(spans):
-    body = {"resourceSpans": [{
-        "resource": {"attributes": [{
-            "key": "service.name", "value": {"stringValue": OTEL_SERVICE_NAME},
-        }]},
-        "scopeSpans": [{"scope": {"name": "notes"}, "spans": spans}],
-    }]}
-    try:
-        request = Request(OTEL_ENDPOINT + "/v1/traces",
-                          data=json.dumps(body).encode("utf-8"),
-                          headers={"Content-Type": "application/json"}, method="POST")
-        with urlopen(request, timeout=3) as response:
-            response.read()
-    except (OSError, ValueError) as e:
-        log.warning("не удалось отправить OTLP: %s", e)
 
 
 @contextmanager
 def request_span(handler):
-    if not OTEL_ENDPOINT:
+    if tracer is None:
         yield
         return
-    incoming = handler.headers.get("traceparent", "")
-    match = re.fullmatch(r"00-([0-9a-f]{32})-([0-9a-f]{16})-([0-9a-f]{2})", incoming)
-    valid = match and int(match[1], 16) and int(match[2], 16)
-    trace_id = match[1] if valid else secrets.token_hex(16)
-    parent_id = match[2] if valid else ""
-    sampled = bool(int(match[3], 16) & 1) if valid else True
+    # Имена HTTP-заголовков нечувствительны к регистру.
+    ctx = PROPAGATOR.extract(carrier={key.lower(): value for key, value in handler.headers.items()})
     path = route_label(urlparse(handler.path).path)
-    span = new_span(f"HTTP {handler.command} {path}", trace_id, parent_id, 2)
-    context = {"server": span, "spans": []}
-    TRACE_CONTEXT.current = context
-    try:
-        yield
-    finally:
-        span["endTimeUnixNano"] = str(time.time_ns())
-        status = handler._status or 500
-        span["attributes"] = [
-            {"key": "http.method", "value": {"stringValue": handler.command}},
-            {"key": "http.status_code", "value": {"intValue": str(status)}},
-        ]
-        if status >= 500:
-            span["status"] = {"code": 2}
-        context["spans"].append(span)
-        TRACE_CONTEXT.current = None
-        if sampled:
-            # Ограниченный таймаут экспорта; HTTP-ответ уже отправлен клиенту.
-            export_spans(context["spans"])
+    with tracer.start_as_current_span(
+            f"HTTP {handler.command} {path}", context=ctx, kind=trace.SpanKind.SERVER) as span:
+        span.set_attribute("http.method", handler.command)
+        try:
+            yield
+        finally:
+            status = handler._status or 500
+            span.set_attribute("http.status_code", status)
+            if status >= 500:
+                span.set_status(trace.StatusCode.ERROR)
 
 
 # Доля искусственных ошибок, 0..1. Некорректное значение: ошибка и код 2
@@ -443,7 +371,7 @@ class Handler(BaseHTTPRequestHandler):
                 log.error("ошибка хранилища: %s", e)
                 return self._json(500, {"error": "storage"})
         if path == "/metrics":
-            return self._send(200, generate_metrics(), "text/plain; version=0.0.4; charset=utf-8")
+            return self._send(200, generate_latest(), CONTENT_TYPE_LATEST)
         if path == "/slowsql":
             if STORE == "file":
                 return self._json(501, {"error": "postgres only"})
@@ -536,8 +464,10 @@ class Handler(BaseHTTPRequestHandler):
         return super().parse_request()
 
     def log_request(self, code="-", size="-"):
-        record_request(self.command, urlparse(self.path).path, code,
-                       time.monotonic() - self._t0)
+        path = route_label(urlparse(self.path).path)
+        HTTP_REQUESTS.labels(self.command, path, str(code)).inc()
+        HTTP_DURATION.labels(self.command, path).observe(
+            time.monotonic() - self._t0)
         super().log_request(code, size)
 
     def log_message(self, fmt, *args):
@@ -553,9 +483,6 @@ class Handler(BaseHTTPRequestHandler):
             "dur_ms": round((time.monotonic() - started) * 1000),
             "version": VERSION,
         }
-        context = getattr(TRACE_CONTEXT, "current", None)
-        if context is not None:
-            fields["trace_id"] = context["server"]["traceId"]
         log.info("request", extra={"fields": fields})
 
 
@@ -567,6 +494,7 @@ def main():
     if STARTUP_DELAY > 0:
         time.sleep(STARTUP_DELAY)  # порт ещё не слушается
     initialize_storage()
+    BUILD_INFO.labels(VERSION).set(1)
     try:
         update_notes_total()
     except STORAGE_ERRORS as e:
@@ -599,6 +527,9 @@ def main():
     watchdog.daemon = True
     watchdog.start()
     server.server_close()  # дожидается потоков обработчиков
+    if tracer is not None:
+        # После завершения запросов отправляем оставшуюся очередь спанов.
+        trace.get_tracer_provider().shutdown()
     watchdog.cancel()
     log.info("stopped")
     sys.exit(0)

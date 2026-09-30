@@ -11,6 +11,9 @@ from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge,
+                               Histogram, generate_latest)
+
 VERSION = os.environ.get("APP_VERSION", "dev")
 HOST = os.environ.get("HOST", "127.0.0.1")
 DATA = os.environ.get("NOTES_DATA", "/var/lib/notes/notes.txt")
@@ -73,7 +76,7 @@ LEAK_MAX_MB = int(os.environ.get("LEAK_MAX_MB", "1024"))   # потолок су
 STORE = os.environ.get("STORE", "file")
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
-# В файловом режиме сторонних зависимостей нет.
+# Драйвер PostgreSQL нужен только при STORE=postgres.
 if STORE == "postgres":
     try:
         import psycopg
@@ -182,14 +185,19 @@ def initialize_storage():
             log.warning("база пока недоступна: %s", e)
 
 
-# Метрики из урока 8.2: текстовый формат Prometheus без стороннего клиента.
+# Метрики из урока 8.2: реестр prometheus_client и текстовый /metrics.
 KNOWN_ROUTES = {"/", "/notes", "/healthz", "/readyz", "/headers", "/slow",
                 "/error", "/leak", "/burn", "/slowsql", "/metrics"}
-BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10)
-METRICS_LOCK = threading.Lock()
-HTTP_REQUESTS = {}
-HTTP_DURATION = {}
-NOTES_TOTAL = 0
+HTTP_REQUESTS = Counter(
+    "notes_http_requests_total", "Число HTTP-запросов",
+    ["method", "path", "status"])
+HTTP_DURATION = Histogram(
+    "notes_http_request_duration_seconds", "Длительность запроса, секунды",
+    ["method", "path"],
+    buckets=(0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5, 10))
+NOTES_TOTAL = Gauge("notes_notes_total", "Сколько заметок сохранено")
+BUILD_INFO = Gauge("notes_build_info", "Версия сборки", ["version"])
+NOTES_TOTAL_LOCK = threading.Lock()
 
 
 def route_label(path):
@@ -197,63 +205,10 @@ def route_label(path):
     return path if path in KNOWN_ROUTES else "other"
 
 
-def record_request(method, path, status, duration):
-    with METRICS_LOCK:
-        key = (method, route_label(path), str(status))
-        HTTP_REQUESTS[key] = HTTP_REQUESTS.get(key, 0) + 1
-        hist = HTTP_DURATION.setdefault(key[:2], [0, 0.0, [0] * len(BUCKETS)])
-        hist[0] += 1
-        hist[1] += duration
-        for i, bound in enumerate(BUCKETS):
-            if duration <= bound:
-                hist[2][i] += 1
-
-
 def update_notes_total():
-    global NOTES_TOTAL
-    # Порядок блокировок один: метрики, затем файловое хранилище.
-    with METRICS_LOCK:
-        NOTES_TOTAL = len(list_notes())
-
-
-def metric_labels(**values):
-    def escape(value):
-        return str(value).replace("\\", "\\\\").replace("\n", "\\n").replace('"', '\\"')
-    return "{" + ",".join(f'{key}="{escape(value)}"' for key, value in values.items()) + "}"
-
-
-def generate_metrics():
-    lines = [
-        "# HELP notes_http_requests_total Число HTTP-запросов",
-        "# TYPE notes_http_requests_total counter",
-    ]
-    with METRICS_LOCK:
-        for (method, path, status), count in sorted(HTTP_REQUESTS.items()):
-            labels = metric_labels(method=method, path=path, status=status)
-            lines.append(f"notes_http_requests_total{labels} {float(count)}")
-        lines += [
-            "# HELP notes_http_request_duration_seconds Длительность запроса, секунды",
-            "# TYPE notes_http_request_duration_seconds histogram",
-        ]
-        for (method, path), (count, total, buckets) in sorted(HTTP_DURATION.items()):
-            labels = metric_labels(method=method, path=path)
-            name = "notes_http_request_duration_seconds"
-            for bound, value in zip(BUCKETS, buckets):
-                bucket_labels = metric_labels(method=method, path=path, le=float(bound))
-                lines.append(f"{name}_bucket{bucket_labels} {float(value)}")
-            bucket_labels = metric_labels(method=method, path=path, le="+Inf")
-            lines.append(f"{name}_bucket{bucket_labels} {float(count)}")
-            lines.append(f"{name}_count{labels} {float(count)}")
-            lines.append(f"{name}_sum{labels} {total}")
-        lines += [
-            "# HELP notes_notes_total Сколько заметок сохранено",
-            "# TYPE notes_notes_total gauge",
-            f"notes_notes_total {float(NOTES_TOTAL)}",
-            "# HELP notes_build_info Версия сборки",
-            "# TYPE notes_build_info gauge",
-            f"notes_build_info{metric_labels(version=VERSION)} 1.0",
-        ]
-    return "\n".join(lines) + "\n"
+    # Чтение и обновление идут по очереди: старый результат не затрёт новый.
+    with NOTES_TOTAL_LOCK:
+        NOTES_TOTAL.set(len(list_notes()))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -309,7 +264,7 @@ class Handler(BaseHTTPRequestHandler):
                 log.error("ошибка хранилища: %s", e)
                 return self._json(500, {"error": "storage"})
         if path == "/metrics":
-            return self._send(200, generate_metrics(), "text/plain; version=0.0.4; charset=utf-8")
+            return self._send(200, generate_latest(), CONTENT_TYPE_LATEST)
         if path == "/slowsql":
             if STORE == "file":
                 return self._json(501, {"error": "postgres only"})
@@ -402,8 +357,10 @@ class Handler(BaseHTTPRequestHandler):
         return super().parse_request()
 
     def log_request(self, code="-", size="-"):
-        record_request(self.command, urlparse(self.path).path, code,
-                       time.monotonic() - self._t0)
+        path = route_label(urlparse(self.path).path)
+        HTTP_REQUESTS.labels(self.command, path, str(code)).inc()
+        HTTP_DURATION.labels(self.command, path).observe(
+            time.monotonic() - self._t0)
         super().log_request(code, size)
 
     def log_message(self, fmt, *args):
@@ -419,6 +376,7 @@ def main():
     if STARTUP_DELAY > 0:
         time.sleep(STARTUP_DELAY)  # порт ещё не слушается
     initialize_storage()
+    BUILD_INFO.labels(VERSION).set(1)
     try:
         update_notes_total()
     except STORAGE_ERRORS as e:
