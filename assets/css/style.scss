@@ -308,6 +308,7 @@ li.checked .todo-text { color: var(--muted); text-decoration: line-through; text
 .tag { display: inline-block; font: 700 11.5px/1 var(--mono); padding: 4px 8px; margin-right: 8px; border-radius: 6px; vertical-align: .12em; letter-spacing: .02em; }
 .tag-junior { color: var(--green); background: color-mix(in srgb, var(--green) 16%, transparent); }
 .tag-middle { color: var(--yellow); background: color-mix(in srgb, var(--yellow) 16%, transparent); }
+.tag-hot { color: var(--accent-ink); background: color-mix(in srgb, var(--accent) 16%, transparent); }
 .tag-senior { color: var(--red); background: color-mix(in srgb, var(--red) 16%, transparent); }
 .qcard details { background: var(--bg); }
 

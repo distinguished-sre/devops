@@ -1236,9 +1236,22 @@ FAILED (errors=1)
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Чем отличаются CI, Continuous Delivery и Continuous Deployment?
+### 1. [junior] [часто] Чем отличаются workflow, job и step в GitHub Actions?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Workflow - это YAML-файл в `.github/workflows/`, его запускает событие из `on:`: push, pull_request, расписание. Внутри один или несколько job, по умолчанию они идут параллельно, порядок задаю через `needs:`. Каждый job выполняется на своём runner. Облачный runner GitHub каждый раз чистая новая ВМ, а на постоянном self-hosted runner файлы прошлых запусков могут остаться. Job состоит из шагов (step): команда `run:` или готовый action через `uses:`. Шаги одного job делят файловую систему, а между job данные передаю артефактами.
+
+**Что хотят услышать:** иерархия workflow, job, step, параллельность job и `needs`, отдельный runner у каждого job, артефакты между job.
+
+**Красный флаг:** «Job и step это одно и то же»; ожидает, что файлы из одного job сами окажутся в другом.
+
+</details>
+
+### 2. [junior] [часто] Чем отличаются CI, Continuous Delivery и Continuous Deployment?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1251,7 +1264,7 @@ CI это автоматическая сборка и проверка кода
 
 </details>
 
-### 2. [junior] Что такое runner и чем hosted отличается от self-hosted?
+### 3. [junior] [часто] Что такое runner и чем hosted отличается от self-hosted?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1264,7 +1277,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 3. [middle] Прод отвечает 502 после вчерашнего релиза, а CI был зелёный. Твои действия?
+### 4. [middle] Прод отвечает 502 после вчерашнего релиза, а CI был зелёный. Твои действия?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1277,7 +1290,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 4. [middle] Тесты зелёные локально, красные в CI. С чего начнёшь?
+### 5. [middle] Тесты зелёные локально, красные в CI. С чего начнёшь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1290,7 +1303,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 5. [middle] Тест падает раз в десять запусков. Что делаешь?
+### 6. [middle] Тест падает раз в десять запусков. Что делаешь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1303,7 +1316,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 6. [middle] Как не пустить красный код в main?
+### 7. [middle] Как не пустить красный код в main?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1316,7 +1329,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 7. [middle] Пайплайн идёт 15 минут. Как ускорить?
+### 8. [middle] Пайплайн идёт 15 минут. Как ускорить?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1329,7 +1342,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 8. [junior] Зачем `permissions: contents: read` в workflow?
+### 9. [junior] Зачем `permissions: contents: read` в workflow?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1342,7 +1355,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 9. [middle] Чем `pull_request` отличается от `pull_request_target` и почему второй опасен?
+### 10. [middle] Чем `pull_request` отличается от `pull_request_target` и почему второй опасен?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1355,7 +1368,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 10. [middle] В workflow подключено `uses: some-org/action@v2`. Что тебя беспокоит?
+### 11. [middle] В workflow подключено `uses: some-org/action@v2`. Что тебя беспокоит?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1368,7 +1381,7 @@ Runner это машина, на которой выполняется зада�
 
 </details>
 
-### 11. [junior] Задача красная, последняя строка лога `Process completed with exit code 2`. Что это значит?
+### 12. [junior] Задача красная, последняя строка лога `Process completed with exit code 2`. Что это значит?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1378,6 +1391,32 @@ Runner это машина, на которой выполняется зада�
 **Что хотят услышать:** «читаю лог с первого признака ошибки, а не с конца»; код выхода как основа CI.
 
 **Красный флаг:** «нажму Re-run» или «разберусь по последней строке».
+
+</details>
+
+### 13. [junior] Какие события запускают workflow в GitHub Actions и как ограничить запуск?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Триггеры задаются в `on:`. Основные: `push`, `pull_request`, `schedule` (cron, время в UTC), `workflow_dispatch` (ручной запуск кнопкой), `release`. Запуск сужаю фильтрами `branches`, `tags` и `paths`, например не гонять полный CI, когда менялась только документация. Для `pull_request` workflow берётся из результата слияния с базовой веткой, это важно помнить при отладке. Для ручного запуска добавляю `workflow_dispatch` с `inputs`.
+
+**Что хотят услышать:** `push`, `pull_request`, `schedule`, `workflow_dispatch`, фильтры `branches`/`paths`, cron в UTC.
+
+**Красный флаг:** Запускать всё на каждый `push` во все ветки без фильтров.
+
+</details>
+
+### 14. [middle] Как в GitHub Actions задать порядок jobs и передать результат сборки в следующую job?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+По умолчанию jobs идут параллельно и на разных машинах. Порядок задаю через `needs: build`, тогда следующая job стартует, только если предыдущая успешна. Файлы между jobs не сохраняются сами: сборку загружаю `actions/upload-artifact`, а в следующей job забираю `actions/download-artifact`. Небольшие значения вроде версии передаю через `outputs` job. Если нужна обработка упавшей зависимости, добавляю `if: always()` или `if: failure()`.
+
+**Что хотят услышать:** `needs`, у каждой job свой runner, artifacts, `outputs`.
+
+**Красный флаг:** Ожидать, что файлы из одной job будут лежать в другой.
 
 </details>
 

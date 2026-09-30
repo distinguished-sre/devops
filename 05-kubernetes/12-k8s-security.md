@@ -1032,9 +1032,9 @@ kubectl auth can-i <глагол> <ресурс> --as=<субъект> -n notes
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Что такое RBAC и из каких объектов он состоит?
+### 1. [junior] [часто] Что такое RBAC и из каких объектов он состоит?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1047,20 +1047,7 @@ Role описывает, какие глаголы допустимы над к�
 
 </details>
 
-### 2. [middle] Разработчик жалуется: `cannot list resource "pods" ... forbidden`. Как разбираешься?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Смотрю точный текст: субъект, глагол, ресурс, namespace. Проверяю `kubectl auth can-i list pods --as=<субъект> -n <ns>`, потом `get rolebinding,clusterrolebinding` и роль на нужные verbs и resources. Чиню минимально: правлю роль или привязку в нужном namespace.
-
-**Что хотят услышать:** `--as`, разница Role и ClusterRole, subject в нужном namespace, не давать wildcard.
-
-**Красный флаг:** сразу выдаёт `cluster-admin`.
-
-</details>
-
-### 3. [middle] Применил NetworkPolicy, а трафик по-прежнему ходит. Почему?
+### 2. [middle] [часто] Применил NetworkPolicy, а трафик по-прежнему ходит. Почему?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1073,20 +1060,7 @@ Role описывает, какие глаголы допустимы над к�
 
 </details>
 
-### 4. [middle] После default deny egress сервис перестал ходить в БД по имени, а по IP ходит. В чём дело?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Заблокирован DNS: запрос к CoreDNS (DNS-серверу кластера) в `kube-system` на порт 53 (UDP и TCP) не проходит. Добавляю egress-разрешение на DNS через `namespaceSelector` на `kube-system`.
-
-**Что хотят услышать:** порт 53, оба протокола, признак «по IP работает, по имени нет».
-
-**Красный флаг:** отключает политику целиком вместо точечного разрешения.
-
-</details>
-
-### 5. [junior] Чем отличаются профили PSS privileged, baseline и restricted?
+### 3. [junior] [часто] Чем отличаются профили PSS privileged, baseline и restricted?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1096,6 +1070,32 @@ Role описывает, какие глаголы допустимы над к�
 **Что хотят услышать:** режимы `enforce`, `warn`, `audit`, метки на namespace.
 
 **Красный флаг:** путает PSS с PodSecurityPolicy (её убрали в 1.25).
+
+</details>
+
+### 4. [middle] Разработчик жалуется: `cannot list resource "pods" ... forbidden`. Как разбираешься?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Смотрю точный текст: субъект, глагол, ресурс, namespace. Проверяю `kubectl auth can-i list pods --as=<субъект> -n <ns>`, потом `get rolebinding,clusterrolebinding` и роль на нужные verbs и resources. Чиню минимально: правлю роль или привязку в нужном namespace.
+
+**Что хотят услышать:** `--as`, разница Role и ClusterRole, subject в нужном namespace, не давать wildcard.
+
+**Красный флаг:** сразу выдаёт `cluster-admin`.
+
+</details>
+
+### 5. [middle] После default deny egress сервис перестал ходить в БД по имени, а по IP ходит. В чём дело?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Заблокирован DNS: запрос к CoreDNS (DNS-серверу кластера) в `kube-system` на порт 53 (UDP и TCP) не проходит. Добавляю egress-разрешение на DNS через `namespaceSelector` на `kube-system`.
+
+**Что хотят услышать:** порт 53, оба протокола, признак «по IP работает, по имени нет».
+
+**Красный флаг:** отключает политику целиком вместо точечного разрешения.
 
 </details>
 
@@ -1174,6 +1174,45 @@ Default deny в namespace, затем явные разрешения: прил�
 **Что хотят услышать:** аутентификация против авторизации, порядок проверок.
 
 **Красный флаг:** путает и «лечит» любую ошибку выдачей админских прав.
+
+</details>
+
+### 12. [junior] Какие настройки securityContext нужны, чтобы под проходил профиль restricted?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Профиль `restricted` требует: `runAsNonRoot: true`, `allowPrivilegeEscalation: false`, сброс всех capabilities (`capabilities.drop: ["ALL"]`) и `seccompProfile` типа `RuntimeDefault` (или `Localhost`). Также запрещены привилегированные контейнеры и hostPath. Если образ запускается от root, меняю образ или задаю `runAsUser`. Результат проверяю `kubectl apply --dry-run=server` в namespace с метками PSS.
+
+**Что хотят услышать:** runAsNonRoot, запрет эскалации, drop ALL, seccomp RuntimeDefault, dry-run на namespace.
+
+**Красный флаг:** Включить privileged, чтобы всё заработало.
+
+</details>
+
+### 13. [junior] Почему нельзя выдавать cluster-admin всем и что такое принцип наименьших привилегий?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+`cluster-admin` даёт любые действия над любыми ресурсами, включая чтение всех Secret и создание привилегированных подов, поэтому ошибка или утёкший токен ведут к компрометации кластера. Принцип наименьших привилегий: давать ровно те verbs и resources, которые нужны, и в нужном namespace через Role и RoleBinding. Избегаю `*` в правилах. Проверяю права командой `kubectl auth can-i` и `kubectl auth can-i --list`.
+
+**Что хотят услышать:** cluster-admin слишком широк, Role в namespace, без wildcard, can-i, токены ServiceAccount.
+
+**Красный флаг:** «Так проще, чтобы ничего не ломалось».
+
+</details>
+
+### 14. [middle] Как снизить риски, связанные с образами контейнеров?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Использую проверенные минимальные базовые образы, не `latest`, а фиксированный тег или digest. Сканирую образы на уязвимости в CI (например, Trivy) и пересобираю при обновлении базы. Запускаю от непривилегированного пользователя. Тяну образы только из доверенного реестра и разрешаю только его, например политикой admission. Для приватного реестра даю `imagePullSecrets` с минимальными правами на чтение.
+
+**Что хотят услышать:** фиксированные теги или digest, сканирование в CI, non-root, доверенный реестр, admission-политики.
+
+**Красный флаг:** Брать любые образы из публичного реестра с тегом latest.
 
 </details>
 

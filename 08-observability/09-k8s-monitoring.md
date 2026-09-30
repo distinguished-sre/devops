@@ -886,22 +886,9 @@ kubectl logs -n monitoring deploy/kps-operator --tail=30
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Тебя просят «поставить мониторинг в кластер». С чего начнёшь?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Поставлю `kube-prometheus-stack` Helm-чартом с закреплённой версией и своим values: ресурсы, retention, PVC. Он даёт Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics и базовые правила. Потом подключу приложения через ServiceMonitor.
-
-**Что хотят услышать:** Prometheus Operator, закреплённая версия чарта, отдельный namespace, PVC и retention, дефолтные дашборды и правила, затем свои сервисы.
-
-**Красный флаг:** «установлю Prometheus и напишу scrape_configs с IP подов».
-
-</details>
-
-### 2. [junior] Ты создал ServiceMonitor, а цели в Prometheus нет. Твои действия?
+### 1. [junior] [часто] Ты создал ServiceMonitor, а цели в Prometheus нет. Твои действия?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -914,7 +901,33 @@ kubectl logs -n monitoring deploy/kps-operator --tail=30
 
 </details>
 
-### 3. [middle] Чем ServiceMonitor отличается от PodMonitor и когда нужен каждый?
+### 2. [junior] [часто] Чем kube-state-metrics отличается от node-exporter и cAdvisor?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+kube-state-metrics публикует состояние объектов Kubernetes (реплики, фазы подов, Jobs). node-exporter отдаёт метрики железа и ОС узла. cAdvisor, встроенный в kubelet, даёт потребление ресурсов контейнерами.
+
+**Что хотят услышать:** по одному примеру метрики на компонент, что «что должно быть» и «сколько потребляется» разные вопросы.
+
+**Красный флаг:** путает kube-state-metrics с metrics-server.
+
+</details>
+
+### 3. [junior] Тебя просят «поставить мониторинг в кластер». С чего начнёшь?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Поставлю `kube-prometheus-stack` Helm-чартом с закреплённой версией и своим values: ресурсы, retention, PVC. Он даёт Prometheus, Alertmanager, Grafana, node-exporter, kube-state-metrics и базовые правила. Потом подключу приложения через ServiceMonitor.
+
+**Что хотят услышать:** Prometheus Operator, закреплённая версия чарта, отдельный namespace, PVC и retention, дефолтные дашборды и правила, затем свои сервисы.
+
+**Красный флаг:** «установлю Prometheus и напишу scrape_configs с IP подов».
+
+</details>
+
+### 4. [middle] Чем ServiceMonitor отличается от PodMonitor и когда нужен каждый?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -927,7 +940,7 @@ ServiceMonitor работает через Service и его endpoints, подх
 
 </details>
 
-### 4. [junior] Prometheus в кластере перезапустился, и графики за неделю пропали. Что не так?
+### 5. [junior] Prometheus в кластере перезапустился, и графики за неделю пропали. Что не так?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -940,7 +953,7 @@ ServiceMonitor работает через Service и его endpoints, подх
 
 </details>
 
-### 5. [middle] Prometheus в кластере падает по OOMKilled. Что проверишь?
+### 6. [middle] Prometheus в кластере падает по OOMKilled. Что проверишь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -953,7 +966,7 @@ ServiceMonitor работает через Service и его endpoints, подх
 
 </details>
 
-### 6. [middle] Поды нового релиза в статусе Running, но алерт `KubeDeploymentReplicasMismatch` горит. Как разбираться?
+### 7. [middle] Поды нового релиза в статусе Running, но алерт `KubeDeploymentReplicasMismatch` горит. Как разбираться?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -963,19 +976,6 @@ ServiceMonitor работает через Service и его endpoints, подх
 **Что хотят услышать:** разница Running и Ready, `kube_deployment_status_replicas_available`, readiness-проба, events, requests и Pending.
 
 **Красный флаг:** «алерт ложный, заглушу».
-
-</details>
-
-### 7. [junior] Чем kube-state-metrics отличается от node-exporter и cAdvisor?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-kube-state-metrics публикует состояние объектов Kubernetes (реплики, фазы подов, Jobs). node-exporter отдаёт метрики железа и ОС узла. cAdvisor, встроенный в kubelet, даёт потребление ресурсов контейнерами.
-
-**Что хотят услышать:** по одному примеру метрики на компонент, что «что должно быть» и «сколько потребляется» разные вопросы.
-
-**Красный флаг:** путает kube-state-metrics с metrics-server.
 
 </details>
 
@@ -1041,6 +1041,45 @@ Federation (простой, но грубый), remote write в централь
 **Что хотят услышать:** `externalLabels`, remote write против federation, долгосрочное хранение, компромисс стоимости.
 
 **Красный флаг:** «пусть открывают три Grafana».
+
+</details>
+
+### 13. [junior] Чем metrics-server отличается от Prometheus?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Metrics-server собирает текущее потребление CPU и памяти с узлов и подов и отдаёт через API Kubernetes. Из него работают `kubectl top` и HorizontalPodAutoscaler. Он хранит только последние значения в памяти, истории и алертов нет. Prometheus хранит временные ряды, по ним строят графики, правила и оповещения. Поэтому для автоскейлинга по CPU мне нужен metrics-server, а для мониторинга и разбора инцидентов нужен Prometheus.
+
+**Что хотят услышать:** metrics-server даёт текущие значения для top и HPA, истории нет, Prometheus хранит историю и алерты.
+
+**Красный флаг:** «metrics-server заменяет Prometheus».
+
+</details>
+
+### 14. [middle] Сервис тормозит, хотя CPU пода не упирается в лимит на графике. Что такое CPU throttling и как его увидеть?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Лимит CPU в Kubernetes реализован квотами: в каждом коротком периоде контейнер получает ограниченное время процессора и, исчерпав его, ждёт до следующего периода. Средний график CPU может быть ниже лимита, а задержки уже растут. В Prometheus это видно по метрикам cAdvisor `container_cpu_cfs_throttled_periods_total` и `container_cpu_cfs_periods_total`: доля их `rate` показывает, как часто контейнер упирался в квоту. Если доля высокая, я увеличиваю лимит или пересматриваю его (и requests) по фактической нагрузке.
+
+**Что хотят услышать:** лимит как квота времени, средний CPU скрывает троттлинг, метрики cfs_throttled, решение через лимиты.
+
+**Красный флаг:** «CPU ниже лимита, значит проблема не в CPU».
+
+</details>
+
+### 15. [middle] Какие базовые алерты ты заведёшь для кластера Kubernetes?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Я начинаю с отказов, которые бьют по пользователям: под перезапускается (`kube_pod_container_status_restarts_total` растёт), под долго в Pending или CrashLoopBackOff, узел NotReady (`kube_node_status_condition`), у Deployment не хватает доступных реплик. Добавляю ресурсы: заканчивается место на PersistentVolume (`kubelet_volume_stats_available_bytes`), узел близок к пределу памяти или диска. Плюс алерт на сам мониторинг: Prometheus недоступен или цели пропали. Обычно я беру готовые правила из kube-prometheus-stack и отключаю те, что шумят без пользы.
+
+**Что хотят услышать:** перезапуски, Pending, NotReady, недостаток реплик, место на томах, алерт на сам мониторинг, готовые правила.
+
+**Красный флаг:** алертить только на CPU и память узлов.
 
 </details>
 

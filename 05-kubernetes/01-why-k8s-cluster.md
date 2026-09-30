@@ -904,9 +904,22 @@ kubectl describe node notes-worker | grep -A8 Conditions
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Перечисли компоненты control plane и скажи, что делает каждый.
+### 1. [junior] [часто] Что такое Kubernetes и чем он отличается от Docker?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Docker (точнее, container runtime вроде containerd) запускает контейнеры на одной машине. Kubernetes - оркестратор: он управляет контейнерами на целом кластере узлов. Я описываю желаемое состояние в манифесте, например `replicas: 3`, а Kubernetes сам выбирает узлы, перезапускает упавшее, раскатывает обновления и балансирует трафик. Сам контейнеры он не запускает: это делает runtime на каждом узле, а kubelet обращается к нему через интерфейс CRI. Поэтому «Kubernetes вместо Docker» - неверная постановка: они работают на разных уровнях.
+
+**Что хотят услышать:** оркестрация против запуска одного контейнера, желаемое состояние, самовосстановление, масштабирование, обновления, runtime отдельно (containerd, CRI).
+
+**Красный флаг:** «Kubernetes - это такой Docker покруче» или «это замена Docker».
+
+</details>
+
+### 2. [junior] [часто] Перечисли компоненты control plane и скажи, что делает каждый.
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -919,7 +932,7 @@ kubectl describe node notes-worker | grep -A8 Conditions
 
 </details>
 
-### 2. [middle] Что происходит от `kubectl apply -f deploy.yaml` до работающего контейнера?
+### 3. [middle] [часто] Что происходит от `kubectl apply -f deploy.yaml` до работающего контейнера?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -932,7 +945,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 3. [middle] etcd недоступен. Что будет с работающими приложениями и что делать?
+### 4. [middle] etcd недоступен. Что будет с работающими приложениями и что делать?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -945,7 +958,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 4. [junior] `kubectl get pods` отвечает `The connection to the server localhost:8080 was refused`. Твои действия?
+### 5. [junior] `kubectl get pods` отвечает `The connection to the server localhost:8080 was refused`. Твои действия?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -958,7 +971,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 5. [middle] Ты выполнил `kubectl delete` и понял, что был не в том контексте. Как не допускать этого?
+### 6. [middle] Ты выполнил `kubectl delete` и понял, что был не в том контексте. Как не допускать этого?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -971,7 +984,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 6. [middle] Команда из трёх человек хочет Kubernetes ради одного сервиса на одной ВМ. Что ответишь?
+### 7. [middle] Команда из трёх человек хочет Kubernetes ради одного сервиса на одной ВМ. Что ответишь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -984,7 +997,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 7. [middle] Ты удалил под, и он вернулся. Другой под удалил, и он не вернулся. Почему?
+### 8. [middle] Ты удалил под, и он вернулся. Другой под удалил, и он не вернулся. Почему?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -997,7 +1010,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 8. [middle] Узел в статусе `NotReady`. Как разбираешься?
+### 9. [middle] Узел в статусе `NotReady`. Как разбираешься?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1010,7 +1023,7 @@ Kubectl шлёт объект в apiserver, тот аутентифицируе�
 
 </details>
 
-### 9. [middle] Зачем нужны namespace и можно ли считать их границей безопасности?
+### 10. [middle] Зачем нужны namespace и можно ли считать их границей безопасности?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1023,7 +1036,7 @@ Namespace группируют объекты, дают уникальность
 
 </details>
 
-### 10. [middle] Кластер создан со стандартным CNI, а тебе нужны NetworkPolicy. Что делать?
+### 11. [middle] Кластер создан со стандартным CNI, а тебе нужны NetworkPolicy. Что делать?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1033,6 +1046,32 @@ CNI (сетевой плагин) выбирается при создании �
 **Что хотят услышать:** CNI это фундамент, kindnet стоит по умолчанию, есть альтернативы.
 
 **Красный флаг:** «поставлю второй CNI поверх первого».
+
+</details>
+
+### 12. [junior] Что делают kubelet, kube-proxy и container runtime на рабочем узле?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Kubelet это агент узла: получает от API-сервера описания подов, через CRI просит runtime запустить контейнеры, следит за пробами и докладывает статус. Container runtime (containerd или CRI-O) реально запускает контейнеры и скачивает образы. Kube-proxy поддерживает на узле сетевые правила для Service (iptables, IPVS или nftables), чтобы трафик на адрес сервиса доходил до подов. Если kubelet остановился, узел уходит в `NotReady`.
+
+**Что хотят услышать:** kubelet как агент, runtime запускает контейнеры, kube-proxy реализует Service.
+
+**Красный флаг:** Сказать, что контейнеры запускает scheduler.
+
+</details>
+
+### 13. [junior] С чего начинаешь диагностику любого объекта в Kubernetes?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Иду от общего к деталям. `kubectl get pod -o wide` покажет статус, узел, рестарты. `kubectl describe pod имя` даёт состояние контейнеров и блок Events внизу: там причины `Failed`, `BackOff`, `FailedScheduling`. Потом `kubectl logs имя` (и `--previous` для упавшего). Если нужно, `kubectl get pod имя -o yaml` для полного вида. Проверяю namespace и контекст, чтобы не смотреть не туда.
+
+**Что хотят услышать:** `get -o wide`, `describe` с Events, `logs --previous`, namespace и контекст.
+
+**Красный флаг:** Сразу удалять под и смотреть, стало ли лучше.
 
 </details>
 

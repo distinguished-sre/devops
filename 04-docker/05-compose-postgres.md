@@ -1006,9 +1006,22 @@ Error response from daemon: failed to set up container networking: driver failed
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Приложение в Compose падает при старте с `connection refused` к базе, хотя `depends_on: db` указан. Почему и как чинишь?
+### 1. [junior] [часто] Зачем нужен Docker Compose, если есть `docker run`?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Запуск стека через `docker run` превращается в длинные команды с портами, томами, сетями и переменными, которые легко забыть или перепутать. Compose описывает весь стек в файле `compose.yml`: сервисы, тома, сети, переменные. `docker compose up -d` поднимает всё сразу, `docker compose down` убирает. Файл лежит в git, значит стенд воспроизводим, а сервисы в одной сети видят друг друга по имени. Это инструмент для одного хоста, оркестратором вроде Kubernetes он не является.
+
+**Что хотят услышать:** декларативное описание стека, воспроизводимость, файл в git, сеть и DNS по имени сервиса, границы применения (один хост).
+
+**Красный флаг:** «Compose это то же самое, что Kubernetes».
+
+</details>
+
+### 2. [junior] [часто] Приложение в Compose падает при старте с `connection refused` к базе, хотя `depends_on: db` указан. Почему и как чинишь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1021,20 +1034,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 2. [junior] Ты сменил пароль в `.env` и перезапустил стек, а приложение пишет `password authentication failed`. Что происходит?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Образ PostgreSQL берёт `POSTGRES_PASSWORD` только при инициализации пустого каталога данных. Том уже с данными, поэтому старый пароль остался. Если данные не нужны, `down -v` и заново. Если нужны, `ALTER USER` внутри базы и синхронизация `.env`.
-
-**Что хотят услышать:** инициализация только на пустом томе, лог `Skipping initialization`, осторожность с `-v` на данных, смена пароля именно в базе.
-
-**Красный флаг:** «пересоздам контейнер», не понимая, что дело в томе.
-
-</details>
-
-### 3. [junior] Чем `docker compose down` отличается от `down -v` и когда второе опасно?
+### 3. [junior] [часто] Чем `docker compose down` отличается от `down -v` и когда второе опасно?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1047,7 +1047,20 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 4. [junior] Почему у `db` в Compose обычно нет `ports`, а у приложения порт публикуют как `127.0.0.1:8080:8080`?
+### 4. [junior] Ты сменил пароль в `.env` и перезапустил стек, а приложение пишет `password authentication failed`. Что происходит?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Образ PostgreSQL берёт `POSTGRES_PASSWORD` только при инициализации пустого каталога данных. Том уже с данными, поэтому старый пароль остался. Если данные не нужны, `down -v` и заново. Если нужны, `ALTER USER` внутри базы и синхронизация `.env`.
+
+**Что хотят услышать:** инициализация только на пустом томе, лог `Skipping initialization`, осторожность с `-v` на данных, смена пароля именно в базе.
+
+**Красный флаг:** «пересоздам контейнер», не понимая, что дело в томе.
+
+</details>
+
+### 5. [junior] Почему у `db` в Compose обычно нет `ports`, а у приложения порт публикуют как `127.0.0.1:8080:8080`?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1060,7 +1073,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 5. [middle] Коллега закоммитил `.env` с паролем базы в репозиторий. Твои действия?
+### 6. [middle] Коллега закоммитил `.env` с паролем базы в репозиторий. Твои действия?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1073,7 +1086,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 6. [middle] После `docker compose up -d` контейнер `db` в статусе `unhealthy`. Как разбираешься?
+### 7. [middle] После `docker compose up -d` контейнер `db` в статусе `unhealthy`. Как разбираешься?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1086,7 +1099,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 7. [junior] Приложение внутри контейнера не может подключиться к `localhost:5432`, а с хоста `psql -h localhost` работает. Почему?
+### 8. [junior] Приложение внутри контейнера не может подключиться к `localhost:5432`, а с хоста `psql -h localhost` работает. Почему?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1099,7 +1112,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 8. [middle] После обновления образа PostgreSQL с 17 на 18 в Compose база оказалась пустой. Что могло пойти не так?
+### 9. [middle] После обновления образа PostgreSQL с 17 на 18 в Compose база оказалась пустой. Что могло пойти не так?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1112,7 +1125,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 9. [middle] Ты изменил одну переменную в `.env` и хочешь применить её. Что перезапустится и как проверить заранее?
+### 10. [middle] Ты изменил одну переменную в `.env` и хочешь применить её. Что перезапустится и как проверить заранее?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1125,7 +1138,7 @@ Error response from daemon: failed to set up container networking: driver failed
 
 </details>
 
-### 10. [middle] `/readyz` приложения отдаёт 503, а `/healthz` 200. Кого и как перезапускать, и что бы ты изменил в стенде?
+### 11. [middle] `/readyz` приложения отдаёт 503, а `/healthz` 200. Кого и как перезапускать, и что бы ты изменил в стенде?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -1135,6 +1148,32 @@ Error response from daemon: failed to set up container networking: driver failed
 **Что хотят услышать:** разделение liveness и readiness, каскадные перезапуски, диагностика по слоям (приложение, сеть, база).
 
 **Красный флаг:** «сделаю одну проверку `/health`, которая ходит во всё».
+
+</details>
+
+### 12. [middle] Как держать разные настройки Compose для разработки и прода?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Общее описание держу в `compose.yaml`, различия выношу в отдельные файлы. Файл `compose.override.yaml` подхватывается автоматически, удобен для разработки: проброс портов, монтирование кода. Для прода указываю файлы явно: `docker compose -f compose.yaml -f compose.prod.yaml up -d`, поздние файлы дополняют и переопределяют ранние. Итог смотрю той же командой с теми же файлами: `docker compose -f compose.yaml -f compose.prod.yaml config` (без `-f` она покажет конфигурацию по умолчанию с dev override). Секреты в файлы не кладу, они идут из `.env` или из секретов окружения.
+
+**Что хотят услышать:** override-файлы, `-f` несколько раз, `docker compose config`, секреты отдельно.
+
+**Красный флаг:** Два отдельных независимых compose-файла с копипастой.
+
+</details>
+
+### 13. [junior] Чем `restart: unless-stopped` отличается от `always` и `on-failure`?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+`no` (по умолчанию) не перезапускает. `on-failure` перезапускает только при ненулевом коде выхода, можно ограничить числом попыток. `always` перезапускает контейнер всегда, в том числе после перезапуска Docker. `unless-stopped` ведёт себя так же, но если я остановил контейнер вручную, после перезапуска демона он не поднимется. Для сервисов обычно ставлю `unless-stopped`. Политика не заменяет healthcheck и не лечит причину падения: контейнер в бесконечном цикле падений лишь маскирует ошибку, смотреть надо `docker logs`.
+
+**Что хотят услышать:** четыре политики, разница при ручной остановке, политика не лечит причину.
+
+**Красный флаг:** Ставить `always` и считать, что сервис теперь надёжен.
 
 </details>
 

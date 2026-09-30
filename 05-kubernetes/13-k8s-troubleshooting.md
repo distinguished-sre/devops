@@ -767,9 +767,9 @@ kubectl get svc notes -n notes -o wide
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Под в статусе `CrashLoopBackOff`. Что делаешь?
+### 1. [junior] [часто] Под в статусе `CrashLoopBackOff`. Что делаешь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -782,7 +782,7 @@ kubectl get svc notes -n notes -o wide
 
 </details>
 
-### 2. [junior] Под висит в `Pending`. Что проверишь?
+### 2. [junior] [часто] Под висит в `Pending`. Что проверишь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -795,20 +795,7 @@ kubectl get svc notes -n notes -o wide
 
 </details>
 
-### 3. [junior] Образ не скачивается: `ImagePullBackOff`. Причины?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Опечатка в имени или теге, тега нет в реестре, приватный реестр без `imagePullSecrets`, нет сети до реестра, лимиты реестра. Смотрю точный текст события `Failed`: он скажет, `not found` это или `unauthorized`.
-
-**Что хотят услышать:** чтение события, различие `not found` и `unauthorized`, `imagePullSecrets`, запрет `latest`.
-
-**Красный флаг:** «перезапущу под».
-
-</details>
-
-### 4. [junior] Какие четыре команды ты выполнишь первыми, когда под не работает?
+### 3. [junior] [часто] Какие четыре команды ты выполнишь первыми, когда под не работает?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -818,6 +805,19 @@ kubectl get svc notes -n notes -o wide
 **Что хотят услышать:** порядок, `--previous`, понимание, где остановился под, до вопроса «почему».
 
 **Красный флаг:** «сразу зайду внутрь контейнера» или «удалю под».
+
+</details>
+
+### 4. [junior] Образ не скачивается: `ImagePullBackOff`. Причины?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Опечатка в имени или теге, тега нет в реестре, приватный реестр без `imagePullSecrets`, нет сети до реестра, лимиты реестра. Смотрю точный текст события `Failed`: он скажет, `not found` это или `unauthorized`.
+
+**Что хотят услышать:** чтение события, различие `not found` и `unauthorized`, `imagePullSecrets`, запрет `latest`.
+
+**Красный флаг:** «перезапущу под».
 
 </details>
 
@@ -909,6 +909,45 @@ Readiness-проба не проходит: неверный путь или п�
 **Что хотят услышать:** откат до анализа, ревизии Helm, `--rollback-on-failure` (в Helm 3 и старых статьях он назывался `--atomic`, в Helm 4 устарел) и `--wait` как профилактика.
 
 **Красный флаг:** `kubectl delete` ресурсов чарта руками.
+
+</details>
+
+### 12. [middle] Узел в статусе NotReady. Что проверишь?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Начинаю с `kubectl describe node`: секция Conditions (Ready, MemoryPressure, DiskPressure, PIDPressure) и события. Потом захожу на узел и смотрю `systemctl status kubelet` и `journalctl -u kubelet`: kubelet мог упасть или потерять связь с API-сервером. Проверяю среду выполнения контейнеров, место на диске, память, сеть до control plane и время на узле. Поды на узле через некоторое время будут вытеснены и пересозданы на других, если есть контроллеры.
+
+**Что хотят услышать:** describe node и conditions, kubelet и его логи, runtime, диск, память, сеть, поведение подов.
+
+**Красный флаг:** Сразу пересоздать узел без диагностики.
+
+</details>
+
+### 13. [middle] Под завис в Terminating и не удаляется. Что делаешь?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Смотрю `kubectl describe pod` и `kubectl get pod -o yaml`: есть ли `finalizers`, и на каком узле он живёт. Причины: узел недоступен, kubelet не подтверждает остановку, процесс не завершается по SIGTERM (до `terminationGracePeriodSeconds`), висит финалайзер. Сначала устраняю причину: восстанавливаю узел или убираю финалайзер, если владелец его уже не обработает. Принудительное удаление `--grace-period=0 --force` оставляю на крайний случай: для StatefulSet это риск двух копий.
+
+**Что хотят услышать:** finalizers, состояние узла, grace period, force как крайняя мера и её риск для StatefulSet.
+
+**Красный флаг:** Всегда удалять с --force.
+
+</details>
+
+### 14. [middle] Под в статусе Evicted. Почему так бывает и что делать?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Kubelet вытесняет поды, когда на узле заканчиваются ресурсы: память, диск, inode, PID. Причину вижу в `kubectl describe pod` (Reason и Message) и в conditions узла. Чиню корень: ставлю requests и limits, включая `ephemeral-storage`, чищу логи и образы, добавляю диск или узлы. Сами Evicted-поды остаются в статусе Failed и их можно удалить `kubectl delete pod`. Если Deployment жив, новые поды создаются автоматически.
+
+**Что хотят услышать:** node-pressure eviction, причина в describe, ephemeral-storage, requests и limits, уборка Failed-подов.
+
+**Красный флаг:** Считать Evicted ошибкой приложения, не глядя на узел.
 
 </details>
 

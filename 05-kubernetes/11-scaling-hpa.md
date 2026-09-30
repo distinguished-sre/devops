@@ -831,22 +831,9 @@ kubectl get apiservice v1beta1.metrics.k8s.io
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] `kubectl get hpa` показывает `<unknown>/50%` в колонке TARGETS. Что проверишь?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Смотрю `kubectl describe hpa`: в событиях будет причина. Обычно две: у контейнера нет `requests.cpu` (нечего делить на процент) или не работает metrics-server (`kubectl top pods` не отвечает). Проверяю `resources` в Deployment, состояние пода metrics-server и `apiservice v1beta1.metrics.k8s.io`.
-
-**Что хотят услышать:** `describe hpa`, `requests`, metrics-server, `kubectl top` как быстрый тест.
-
-**Красный флаг:** «перезапущу HPA» или «подожду», без чтения событий.
-
-</details>
-
-### 2. [junior] Как HPA решает, сколько реплик нужно?
+### 1. [junior] [часто] Как HPA решает, сколько реплик нужно?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -859,7 +846,7 @@ kubectl get apiservice v1beta1.metrics.k8s.io
 
 </details>
 
-### 3. [junior] Зачем нужен metrics-server и чем он отличается от Prometheus?
+### 2. [junior] [часто] Зачем нужен metrics-server и чем он отличается от Prometheus?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -872,7 +859,7 @@ kubectl get apiservice v1beta1.metrics.k8s.io
 
 </details>
 
-### 4. [junior] Чем горизонтальное масштабирование отличается от вертикального?
+### 3. [junior] [часто] Чем горизонтальное масштабирование отличается от вертикального?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -882,6 +869,19 @@ kubectl get apiservice v1beta1.metrics.k8s.io
 **Что хотят услышать:** HPA и VPA, применимость, невозможность вешать оба на CPU.
 
 **Красный флаг:** «vertical это когда больше узлов».
+
+</details>
+
+### 4. [junior] `kubectl get hpa` показывает `<unknown>/50%` в колонке TARGETS. Что проверишь?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Смотрю `kubectl describe hpa`: в событиях будет причина. Обычно две: у контейнера нет `requests.cpu` (нечего делить на процент) или не работает metrics-server (`kubectl top pods` не отвечает). Проверяю `resources` в Deployment, состояние пода metrics-server и `apiservice v1beta1.metrics.k8s.io`.
+
+**Что хотят услышать:** `describe hpa`, `requests`, metrics-server, `kubectl top` как быстрый тест.
+
+**Красный флаг:** «перезапущу HPA» или «подожду», без чтения событий.
 
 </details>
 
@@ -973,6 +973,45 @@ kubectl get apiservice v1beta1.metrics.k8s.io
 **Что хотят услышать:** ограничение CPU-метрики, KEDA, событийное масштабирование.
 
 **Красный флаг:** «увеличу limits CPU».
+
+</details>
+
+### 12. [middle] Какие метрики, кроме CPU, может использовать HPA?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+В `autoscaling/v2` есть несколько типов метрик. `Resource`: CPU и память из metrics-server. `Pods`: своя метрика на под, например число запросов в секунду. `Object`: метрика объекта, например Ingress. `External`: внешняя, скажем длина очереди. Для трёх последних нужен адаптер метрик (например, для Prometheus), который отдаёт их через API метрик. Для очередей часто удобнее KEDA. Память для HPA ненадёжна: многие приложения не освобождают её после пика.
+
+**Что хотят услышать:** autoscaling/v2, типы Resource, Pods, Object, External, нужен адаптер, оговорка про память.
+
+**Красный флаг:** Думать, что HPA умеет только CPU.
+
+</details>
+
+### 13. [middle] Почему `minReplicas: 1` для продакшена обычно плохая идея?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+При одной реплике перезапуск или потеря узла даёт простой (обновление можно пройти без простоя через `maxUnavailable: 0`, `maxSurge: 1` и рабочую readiness), а HPA не поможет, потому что масштабирование требует времени. Ставлю минимум две реплики, разнесённые по узлам через `topologySpreadConstraints` или anti-affinity, и добавляю PodDisruptionBudget. Так плановые работы на узлах не останавливают сервис. Для малонагруженных внутренних сервисов один под допустим, если простой можно пережить.
+
+**Что хотят услышать:** минимум 2 реплики, разные узлы, PDB, цена против доступности.
+
+**Красный флаг:** Ставить 1 ради экономии для клиентского сервиса.
+
+</details>
+
+### 14. [junior] Как проверить, что HPA реально работает?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Проверяю `kubectl get hpa` (TARGETS должны быть числами, не `<unknown>`) и `kubectl describe hpa`: там события и условия. Затем даю нагрузку, например командой `hey` или циклом запросов в отдельном поде, и слежу за `kubectl get hpa -w` и `kubectl get pods -w`. Должно быть: рост метрики, рост реплик, после спада нагрузки через время уменьшение. Если реплик не прибавилось, смотрю requests, metrics-server и `maxReplicas`.
+
+**Что хотят услышать:** get hpa и describe, нагрузочный тест, наблюдение в watch, задержка при снижении.
+
+**Красный флаг:** Проверять только по манифесту, без нагрузки.
 
 </details>
 

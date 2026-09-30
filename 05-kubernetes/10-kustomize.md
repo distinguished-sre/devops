@@ -846,9 +846,22 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 ## Вопросы с собеседований
 
-Раздел для повторения: ответь вслух, потом открой ответ.
+Раздел для повторения: ответь вслух, потом открой ответ. Вопросы с пометкой «часто спрашивают» задают почти на каждом собеседовании по теме урока: начни с них.
 
-### 1. [junior] Нужно два окружения, dev и prod, почти одинаковых. Helm или Kustomize?
+### 1. [junior] [часто] Что такое Kustomize: base, overlay и patch?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Kustomize собирает манифесты без шаблонов: я беру обычный YAML и накладываю на него изменения. Base - общий набор манифестов, который одинаков для всех окружений. Overlay - папка окружения (dev, prod) со своим `kustomization.yaml`: она ссылается на base и добавляет отличия. Patch - точечная правка поля, например число реплик или лимиты. Результат смотрю `kubectl kustomize overlays/prod`, применяю `kubectl apply -k overlays/prod`. Kustomize встроен в `kubectl`, отдельно ставить не нужно.
+
+**Что хотят услышать:** base общий, overlay на окружение, patch правит поля, никаких шаблонов и переменных, `apply -k`.
+
+**Красный флаг:** копировать весь набор манифестов в каждое окружение.
+
+</details>
+
+### 2. [junior] [часто] Нужно два окружения, dev и prod, почти одинаковых. Helm или Kustomize?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -861,33 +874,7 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 2. [middle] `kubectl apply -k` падает с `no matches for Id ... failed to find unique target for patch`. Что делаешь?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Собираю `kubectl kustomize` на базе и на overlay, чтобы понять, где ломается. Читаю в ошибке kind и name, сравниваю с базой (`grep -A3 kind:`). Обычно опечатка в имени, другое `kind` или ресурс переименовали в базе.
-
-**Что хотят услышать:** сборка без кластера, что патч привязан к точному id (kind, name, namespace), а не ищет нечётко.
-
-**Красный флаг:** «Пробую apply ещё раз» или «удалю патч».
-
-</details>
-
-### 3. [middle] Добавил `commonLabels` в overlay, `apply` упал на `field is immutable`. Почему?
-
-<details markdown="1">
-<summary>Ответ</summary>
-
-Старый `commonLabels` пишет метки и в `spec.selector` у Deployment и StatefulSet. Selector (правило, по которому Deployment находит свои поды по меткам) неизменяем, поэтому применение поверх существующего ресурса отклоняется. Использую `labels` с `includeSelectors: false`.
-
-**Что хотят услышать:** неизменяемость selector, отличие `commonLabels` и `labels`, что при уже развёрнутом объекте надо пересоздавать.
-
-**Красный флаг:** предлагает `kubectl delete` и apply на проде без оценки простоя.
-
-</details>
-
-### 4. [junior] Как узнать, что изменится в кластере, до применения overlay?
+### 3. [junior] [часто] Как узнать, что изменится в кластере, до применения overlay?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -900,7 +887,33 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 5. [middle] Поменяли ConfigMap, а поды не перезапустились и работают со старым конфигом. Как сделать, чтобы выкатывалось само?
+### 4. [middle] `kubectl apply -k` падает с `no matches for Id ... failed to find unique target for patch`. Что делаешь?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Собираю `kubectl kustomize` на базе и на overlay, чтобы понять, где ломается. Читаю в ошибке kind и name, сравниваю с базой (`grep -A3 kind:`). Обычно опечатка в имени, другое `kind` или ресурс переименовали в базе.
+
+**Что хотят услышать:** сборка без кластера, что патч привязан к точному id (kind, name, namespace), а не ищет нечётко.
+
+**Красный флаг:** «Пробую apply ещё раз» или «удалю патч».
+
+</details>
+
+### 5. [middle] Добавил `commonLabels` в overlay, `apply` упал на `field is immutable`. Почему?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Старый `commonLabels` пишет метки и в `spec.selector` у Deployment и StatefulSet. Selector (правило, по которому Deployment находит свои поды по меткам) неизменяем, поэтому применение поверх существующего ресурса отклоняется. Использую `labels` с `includeSelectors: false`.
+
+**Что хотят услышать:** неизменяемость selector, отличие `commonLabels` и `labels`, что при уже развёрнутом объекте надо пересоздавать.
+
+**Красный флаг:** предлагает `kubectl delete` и apply на проде без оценки простоя.
+
+</details>
+
+### 6. [middle] Поменяли ConfigMap, а поды не перезапустились и работают со старым конфигом. Как сделать, чтобы выкатывалось само?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -913,7 +926,7 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 6. [middle] Кто-то поправил prod через `kubectl edit`, и он отличается от git. Как это обнаружить и что делать?
+### 7. [middle] Кто-то поправил prod через `kubectl edit`, и он отличается от git. Как это обнаружить и что делать?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -926,7 +939,7 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 7. [middle] Нужно доработать чужой Helm-чарт (добавить метку и ограничения), но форкать не хочется. Как?
+### 8. [middle] Нужно доработать чужой Helm-чарт (добавить метку и ограничения), но форкать не хочется. Как?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -939,7 +952,7 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 8. [middle] Где хранить пароль БД для overlay prod?
+### 9. [middle] Где хранить пароль БД для overlay prod?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -952,7 +965,7 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 9. [junior] Просят добавить staging за час. Что делаешь?
+### 10. [junior] Просят добавить staging за час. Что делаешь?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -965,7 +978,7 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 
 </details>
 
-### 10. [middle] Удалил манифест из base, но ресурс остался в кластере. Почему?
+### 11. [middle] Удалил манифест из base, но ресурс остался в кластере. Почему?
 
 <details markdown="1">
 <summary>Ответ</summary>
@@ -975,6 +988,32 @@ error: accumulating resources: accumulation err='merging resources from 'extra-p
 **Что хотят услышать:** prune и его риски (селектор меток), GitOps как штатное решение.
 
 **Красный флаг:** уверен, что apply синхронизирует набор «как rsync --delete».
+
+</details>
+
+### 12. [middle] Чем strategic merge patch отличается от JSON 6902 patch в Kustomize?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Strategic merge patch выглядит как частичный YAML-манифест: Kustomize находит объект и сливает поля, понимая структуру Kubernetes (списки контейнеров сливаются по имени). JSON 6902 описывает операции `add`, `replace`, `remove` по точному пути, например `/spec/replicas`. Первый читается проще, второй точнее и особенно удобен, когда надо поменять элемент списка по индексу. Удалять поля умеют оба: в strategic merge поле задают как `null`, элемент списка убирают через `$patch: delete`. Оба подключаю через `patches` в `kustomization.yaml`. Результат проверяю командой `kubectl kustomize`.
+
+**Что хотят услышать:** merge по структуре против операций по пути, когда нужен 6902, секция patches, проверка через kustomize build.
+
+**Красный флаг:** Путать patch с полной копией манифеста.
+
+</details>
+
+### 13. [junior] Как поменять тег образа в overlay, не правя базовый манифест?
+
+<details markdown="1">
+<summary>Ответ</summary>
+
+Использую поле `images` в `kustomization.yaml`: указываю `name`, `newName` и `newTag` (или `digest`). Kustomize подставит значение во все подходящие контейнеры. Ту же правку делаю командой `kustomize edit set image NAME=REGISTRY/NAME:TAG`, её удобно вызывать из CI. Так base остаётся общим, а версия у каждого окружения своя и видна в git.
+
+**Что хотят услышать:** поле images, newTag или digest, kustomize edit set image, версия в overlay.
+
+**Красный флаг:** Копировать base в каждое окружение ради смены тега.
 
 </details>
 

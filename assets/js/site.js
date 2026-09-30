@@ -218,6 +218,12 @@
     var first = h.firstChild;
     if (first && first.nodeType === 3) first.nodeValue = first.nodeValue.replace(/\[(junior|middle|senior)\]\s*/i, '');
     h.insertBefore(tag, h.firstChild);
+    // [часто]: вопрос, который задают почти на каждом собеседовании по теме
+    var t2 = tag.nextSibling;
+    if (t2 && t2.nodeType === 3 && /^\s*(?:\d+\.\s*)?\[часто\]\s*/i.test(t2.nodeValue)) {
+      t2.nodeValue = t2.nodeValue.replace(/\[часто\]\s*/i, '');
+      h.insertBefore(el('span', 'tag tag-hot', 'часто спрашивают'), t2);
+    }
     var card = el('div', 'qcard'), sib = h.nextElementSibling;
     h.parentNode.insertBefore(card, h); card.appendChild(h);
     while (sib && !/^H[1-3]$/.test(sib.tagName)) { var nx = sib.nextElementSibling; card.appendChild(sib); sib = nx; }
