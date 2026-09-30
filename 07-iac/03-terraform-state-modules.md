@@ -994,6 +994,7 @@ infra/terraform/modules/notes-vm/cloud-init.yaml.tftpl
 infra/terraform/modules/notes-vm/network.tf
 infra/terraform/modules/notes-vm/outputs.tf
 infra/terraform/modules/notes-vm/variables.tf
+infra/terraform/modules/notes-vm/versions.tf
 infra/terraform/modules/notes-vm/vm.tf
 ```
 
