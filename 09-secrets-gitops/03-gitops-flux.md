@@ -3,34 +3,98 @@ layout: lesson
 title: "GitOps: Flux разворачивает «Заметки» из git"
 topic: 9
 lesson: "9.3"
-time: "2.5 ч"
+time: "3.5 ч"
 ---
 
 ## Зачем это нужно
 
-Пока ты катишь релизы командой `helm upgrade` со своего ноутбука, у "продакшена" есть один настоящий источник правды: твоя голова и история shell. Коллега не знает, что и когда выкатили, ручная правка через `kubectl edit` живёт до следующего деплоя, а права на кластер нужны каждому, кто выкатывает. На работе это выглядит как "у меня работает, а на проде нет" и как ночной откат "того, что кто-то поменял руками".
+Пока ты катишь релизы командой `helm upgrade` со своего ноутбука, у «продакшена» нет настоящего источника правды: есть твоя голова и история shell. Коллега не знает, что и когда выкатили. Ручная правка через `kubectl edit` живёт до следующего деплоя. Права на кластер нужны каждому, кто выкатывает. На работе это звучит как «у меня работает, а на проде нет» и как ночной откат «того, что кто-то поменял руками».
 
-GitOps (git как единственный источник желаемого состояния) решает это: описание кластера лежит в репозитории, агент внутри кластера сам подтягивает его и приводит кластер в соответствие. Деплой равен merge в `main`, откат равен `git revert`.
+GitOps (git как единственный источник желаемого состояния) решает это. Описание кластера лежит в репозитории, а агент внутри кластера сам подтягивает его и приводит кластер в соответствие. Деплой равен слиянию в ветку `main`, откат равен `git revert`.
 
-Шаг проекта: «Заметки» разворачиваются на новом кластере `notes` не руками, а из репозитория `notes-gitops` через Flux; ручные `helm install` больше не используются.
+Шаг проекта: «Заметки» разворачиваются на новом кластере `notes` не руками, а из репозитория `notes-gitops` через Flux. Ручные `helm install` больше не используются.
 
 ## Что нужно знать
 
-- [Урок 3.2: удалённые репозитории и Pull Request](../03-git-ci/02-remotes-workflow.md) - push, revert, PR в `main`
-- [Урок 4.7: образы и реестр ghcr.io](../04-docker/07-images-registry.md) - образ `notes:0.7.0` и ghcr.io
-- [Урок 5.1: кластер kind](../05-kubernetes/01-why-k8s-cluster.md) - `kind/kind.yaml`, контекст `kind-notes`
-- [Урок 5.4: Gateway API](../05-kubernetes/04-ingress-gateway.md) - Envoy Gateway, Gateway `notes-gw`
-- [Урок 5.9: Helm](../05-kubernetes/09-helm.md) - чарт `helm/notes`, values, релиз
-- [Урок 9.1: Vault](01-secrets-problem-vault.md) - `scripts/seed-vault.sh`
-- [Урок 9.2: Vault и External Secrets Operator](02-vault-k8s-eso.md) - `ExternalSecret`, `ClusterSecretStore`
+- [Урок 3.2: удалённые репозитории и Pull Request](../03-git-ci/02-remotes-workflow.md): push, revert, PR в `main`.
+- [Урок 3.3: GitHub Actions](../03-git-ci/03-actions-ci.md): CI-пайплайн, который сейчас деплоит «толчком».
+- [Урок 4.7: образы и реестр ghcr.io](../04-docker/07-images-registry.md): образ `notes:0.7.0` и ghcr.io.
+- [Урок 5.1: кластер kind](../05-kubernetes/01-why-k8s-cluster.md): `kind/kind.yaml`, контекст `kind-notes`.
+- [Урок 5.4: Gateway API](../05-kubernetes/04-ingress-gateway.md): Envoy Gateway, Gateway `notes-gw`.
+- [Урок 5.9: Helm](../05-kubernetes/09-helm.md): чарт `helm/notes`, values, релиз.
+- [Урок 5.10: Kustomize](../05-kubernetes/10-kustomize.md): файл `kustomization.yaml`.
+- [Урок 9.1: Vault](01-secrets-problem-vault.md): `scripts/seed-vault.sh`.
+- [Урок 9.2: Vault и External Secrets Operator](02-vault-k8s-eso.md): `ExternalSecret`, `ClusterSecretStore`.
+
+## Картина целиком
+
+Представь склад, где работает кладовщик. У начальника есть **журнал заказов** (тетрадь): там записано, что должно лежать на каких полках. Раньше начальник сам ходил по складу и расставлял коробки. Теперь у него есть кладовщик, который каждые пять минут открывает тетрадь, идёт по полкам и сверяет. Если в тетради появилась новая строка, он добавляет коробку. Если кто-то ночью поставил лишнюю коробку, он убирает её. Начальник больше не ходит по складу, он только пишет в тетрадь. А тетрадь хранится в сейфе с историей всех записей: кто, когда и что дописал.
+
+Тетрадь это репозиторий git. Кладовщик это Flux. Склад это кластер. Аналогия ломается в одном: кладовщик слепо доверяет тетради, даже если в ней ошибка, и аккуратно расставит на полках ошибку. Поэтому перед записью в тетрадь (в `main`) нужна проверка.
+
+```text
+   ты                    GitHub                      кластер kind-notes
+ ┌──────┐  git push    ┌─────────────┐   каждые     ┌───────────────────────────────┐
+ │ PR   │ ───────────> │ notes-gitops│ <─────────── │ Flux (namespace flux-system)  │
+ │ merge│  (изменил    │  main       │   5-10 минут │  source-controller  скачивает │
+ └──────┘   описание)  └─────────────┘   «что нового│  kustomize-controller применяет│
+                                          в git?»   │  helm-controller ставит чарты │
+                                                    │        │                      │
+   в кластер ты не ходишь                            │        v сверяет и исправляет │
+                                                    │  Deployment, Gateway,         │
+                                                    │  ExternalSecret, ...          │
+                                                    └───────────────────────────────┘
+```
+
+За урок разберёшь каждый кусок: чем «декларативное» описание отличается от команд, чем pull отличается от push, из каких контроллеров состоит Flux, что значат reconcile, prune и drift, как задать порядок применения, как Flux ставит Helm-чарты и как откатывать.
 
 ## Теория
 
+### Зачем нужен GitOps: что не так с ручными деплоями
+
+**Зачем оно существует.** Представь три ситуации из жизни команды:
+
+1. Ночью упал сервис. Ты поправил его через `kubectl edit`. Утром пришла обычная выкатка и вернула старое значение. Сервис упал снова.
+2. Новый коллега спрашивает: «Какая версия стоит на проде и кто её ставил?» Ответа в одном месте нет: смотреть надо в кластере, в истории чата и в чьём-то терминале.
+3. Кластер потеряли (авария облака). Чтобы собрать его заново, нужно вспомнить все команды, которые кто-то когда-то запускал.
+
+Общая причина: желаемое состояние нигде не записано, оно существует только как результат ручных действий.
+
+**Аналогия.** Рецепт против «повар сделал на глаз». По рецепту любой повар повторит блюдо. На глаз получится каждый раз по-разному, и рецепт нельзя проверить.
+
+**Как устроено.** GitOps (Git + Operations) ставит правило: **желаемое состояние всей системы описано в git, и только оттуда попадает в кластер**. Всё остальное следует из него: история изменений это `git log`, проверка изменений это pull request, откат это `git revert`, восстановление после аварии это «новый кластер, тот же репозиторий».
+
+**Что путают:** «GitOps это когда манифесты лежат в git». Манифесты можно хранить в git и всё равно применять руками. Суть в том, что кластер **сам** следует за git, а ручные правки не переживают следующую сверку.
+
+### Декларативный и императивный подход
+
+Два способа сказать компьютеру, чего ты хочешь.
+
+**Императивный** (imperative) это последовательность команд: «создай Deployment, потом увеличь реплики до трёх, потом поменяй образ». Итог зависит от того, что было до этого: вторая команда на уже созданном ресурсе упадёт.
+
+**Декларативный** (declarative) это описание итога: «должен существовать Deployment `notes`, три реплики, образ `0.7.0`». Как этого достичь, решает система. Применять такое описание можно сколько угодно раз, результат тот же (это свойство называют идемпотентностью, [урок 9.1](01-secrets-problem-vault.md)).
+
+Аналогия: заказ в ресторане. «Принесите борщ» (декларативно) против «возьмите кастрюлю, налейте воду, положите свёклу...» (императивно).
+
+Kubernetes уже декларативный: ты пишешь YAML, а контроллеры его исполняют. GitOps добавляет ещё один уровень: YAML лежит не у тебя на диске, а в git, и его применяет не человек, а агент.
+
 ### Push и pull: кто стучится в кластер
 
-В модели push (толкать) CI-пайплайн из [урока 3.3](../03-git-ci/03-actions-ci.md) после сборки сам идёт в кластер: `kubectl apply` или `helm upgrade`. Для этого у CI есть kubeconfig с высокими правами, а API-сервер должен быть доступен снаружи. Если кто-то поправил ресурс руками, пайплайн об этом не узнает до следующего запуска.
+В модели **push** (толкать) CI-пайплайн из [урока 3.3](../03-git-ci/03-actions-ci.md) после сборки сам идёт в кластер и делает `kubectl apply` или `helm upgrade`. Для этого у CI хранится kubeconfig (файл с адресом и учётными данными кластера) с правами на изменения, а API-сервер кластера должен быть доступен снаружи. Если кто-то поправил ресурс руками, пайплайн об этом не узнает до следующего запуска.
 
-В модели pull (тянуть) агент внутри кластера сам следит за репозиторием. Доступ у него только на чтение git, наружу API-сервер открывать не нужно, а расхождение между git и кластером он замечает и исправляет постоянно. Четыре правила GitOps:
+В модели **pull** (тянуть) агент внутри кластера сам следит за репозиторием. Доступ у него только на чтение git, открывать API-сервер наружу не нужно, а расхождение между git и кластером он замечает и исправляет постоянно.
+
+```text
+  push (обычный CI/CD)                       pull (GitOps)
+  ┌─────────┐   kubeconfig    ┌───────┐      ┌─────────┐   git       ┌───────┐
+  │ CI      │ ──────────────> │кластер│      │  git    │ <───────── │ агент │
+  │ (снаружи)│  права на      └───────┘      │ репозит.│  только    │внутри │
+  └─────────┘  запись                         └─────────┘  чтение    │кластера│
+   утечёт секрет CI = доступ к проду          снаружи нужен лишь      └───────┘
+                                              доступ на чтение git
+```
+
+Четыре правила GitOps:
 
 1. Желаемое состояние описано декларативно (манифесты, чарты, values).
 2. Оно версионировано: история в git, кто и что изменил видно в `git log`.
@@ -42,24 +106,44 @@ GitOps (git как единственный источник желаемого 
 <details markdown="1">
 <summary>Ответ</summary>
 
-В push у CI лежит kubeconfig с правами на изменение кластера, и утечка секрета CI даёт доступ к проду. В pull права на запись в кластер есть только у агента внутри него, а снаружи нужен лишь доступ на чтение репозитория. 
+В push у CI лежит kubeconfig с правами на изменение кластера, и утечка секрета CI даёт доступ к проду. В pull права на запись в кластер есть только у агента внутри него, а снаружи нужен лишь доступ на чтение репозитория.
 
 </details>
 
-### Из чего состоит Flux
+### Из чего состоит Flux: контроллеры и их объекты
 
-Flux v2.9.5 (Flux, CNCF graduated) - набор контроллеров (controllers), каждый следит за своими объектами (Custom Resource):
+**Flux** (v2.9.5, проект CNCF, зрелость graduated) это набор из нескольких контроллеров. Контроллер и CRD объяснены в [уроке 9.2](02-vault-k8s-eso.md): контроллер это программа-цикл, которая следит за объектами определённого вида и приводит кластер к описанному. Flux разделён на несколько контроллеров, каждый отвечает за свой кусок работы.
 
 | Контроллер | Что делает | Его объекты |
 |---|---|---|
-| source-controller | скачивает источники и хранит артефакт | `GitRepository`, `HelmRepository`, `OCIRepository` |
+| source-controller | скачивает источники и хранит их копию (артефакт) | `GitRepository`, `HelmRepository`, `OCIRepository` |
 | kustomize-controller | применяет манифесты из источника | `Kustomization` |
 | helm-controller | ставит и обновляет Helm-релизы | `HelmRelease` |
 | notification-controller | шлёт события в Slack, Telegram, webhook | `Provider`, `Alert` |
 
-Есть ещё автоматическое обновление образов (image-reflector и image-automation): они сами коммитят новый тег в git, в курсе только обзор. Не путай два разных объекта `Kustomization`. У Flux он называется `kustomize.toolkit.fluxcd.io/v1` и означает "применить вот этот путь из git". Файл `kustomization.yaml` из [урока 5.10](../05-kubernetes/10-kustomize.md) - другое: он собирает манифесты в один набор. Первое использует второе.
+Есть ещё автоматическое обновление образов (image-reflector и image-automation): они сами коммитят новый тег в git. В курсе только обзор.
 
-Цепочка: `GitRepository` скачивает репозиторий, `Kustomization` применяет путь из него, а внутри лежат `HelmRelease`, которые helm-controller превращает в обычные релизы Helm.
+**Цепочка.** Один объект ссылается на другой:
+
+```text
+  GitRepository flux-system          Kustomization apps               HelmRelease notes
+  ┌──────────────────────┐          ┌──────────────────────┐         ┌─────────────────────┐
+  │ url: github.com/     │          │ sourceRef: flux-     │         │ chart: notes 0.4.0  │
+  │   <логин>/notes-gitops│ <─────── │            system    │         │ values: replicas: 3 │
+  │ branch: main         │  берёт   │ path: ./apps/notes   │ применяет│                     │
+  │ interval: 1m         │  из      │ interval: 10m        │ ───────> │ helm-controller     │
+  └──────────────────────┘          └──────────────────────┘  файлы   │ ставит релиз в Helm │
+   source-controller                 kustomize-controller     из пути └─────────────────────┘
+```
+
+**Разобранный пример.** Ты запушил в `main` изменение `replicaCount: 4`. Что происходит по шагам:
+
+1. source-controller раз в `interval` спрашивает GitHub, не сменился ли последний коммит ветки `main`. Замечает новый, скачивает репозиторий и сохраняет копию.
+2. kustomize-controller видит, что у источника новая ревизия, читает файлы по `path` (`./apps/notes`) и применяет их к кластеру. Изменился объект `HelmRelease`.
+3. helm-controller замечает изменившийся `HelmRelease`, вызывает `helm upgrade` с новыми значениями.
+4. Kubernetes создаёт недостающую реплику.
+
+**Не путай два разных `Kustomization`.** У Flux `Kustomization` это объект вида `kustomize.toolkit.fluxcd.io/v1` со смыслом «применить вот этот путь из git». Файл `kustomization.yaml` из [урока 5.10](../05-kubernetes/10-kustomize.md) это другое: он просто собирает YAML-файлы в один набор. Первое использует второе: Flux `Kustomization` указывает на каталог, а в этом каталоге лежит `kustomization.yaml` со списком файлов.
 
 > **Проверь понимание:** какой контроллер выполнит `helm upgrade`, когда ты изменишь values в `HelmRelease`, и какой заметит новый коммит в git?
 
@@ -72,35 +156,103 @@ Flux v2.9.5 (Flux, CNCF graduated) - набор контроллеров (contro
 
 ### Reconcile, prune и drift
 
-Reconcile (сверка) - это цикл: взять желаемое из git, сравнить с фактом, исправить разницу. Он идёт по таймеру `interval` и по событию. Два флага решают судьбу лишнего:
+**Зачем оно существует.** Применить манифест один раз мало: потом кто-то поправит ресурс руками, удалит что-то, и кластер разойдётся с git. Значит, сверка должна быть постоянной.
 
-- `prune: true` - ресурс, удалённый из git, удаляется из кластера. Без него в кластере копится мусор.
-- `driftDetection` у `HelmRelease` - helm-controller замечает ручные правки ресурсов релиза и откатывает их. Ресурсы из `Kustomization` откатывает kustomize-controller при каждой сверке.
+**Аналогия.** Термостат из [урока 9.2](02-vault-k8s-eso.md): сравнивает 22 градуса на уставке с реальными и включает отопление.
 
-Следствие: `kubectl edit` и `kubectl scale` на управляемом ресурсе бесполезны, правку затрёт следующий reconcile. Хочешь изменить прод, меняй git.
+**Как устроено.** **Reconcile** (сверка) это цикл: взять желаемое из git, сравнить с фактом в кластере, исправить разницу. Он идёт по таймеру (`interval`) и по событию (новый коммит). Два понятия решают судьбу расхождений:
+
+- **Drift** (дрейф) это расхождение между git и кластером, которое возникло не через git: ручная правка, ручное удаление.
+- **Prune** (подрезать) это удаление из кластера того, чего больше нет в git. Включается флагом `prune: true` у `Kustomization`. Flux помнит, какие ресурсы он создал (ведёт список, инвентарь), и удаляет те, что пропали из git. Без `prune` в кластере копится мусор.
+
+У `HelmRelease` есть свой механизм `driftDetection`: helm-controller замечает ручные правки ресурсов релиза и откатывает их. Ресурсы из `Kustomization` откатывает kustomize-controller при каждой сверке.
+
+**Разобранный пример (что происходит с ручной правкой).**
+
+```text
+ t=0:00   в git replicaCount: 4     кластер: 4 реплики     всё совпадает
+ t=0:10   kubectl scale --replicas=10                     кластер: 10 (дрейф!)
+ t=0:10+  helm-controller: «факт (10) не равен git (4)»
+ t=~1-2м  helm-controller возвращает 4                     кластер: 4
+```
+
+Следствие: `kubectl edit` и `kubectl scale` на управляемом ресурсе бесполезны, правку затрёт следующая сверка. Хочешь изменить прод, меняй git. Для временной ручной работы во время инцидента Flux умеет приостанавливаться (`flux suspend`), и потом обязательно надо вернуть (`flux resume`).
+
+**Что путают:** «Flux применяет изменения только при коммите». Нет, сверка идёт и по таймеру: даже без коммитов Flux возвращает дрейф. Другое частое заблуждение: `prune: true` безопасен. Удаление PVC или базы из git удалит данные, поэтому важным ресурсам ставят аннотацию `kustomize.toolkit.fluxcd.io/prune: disabled`.
 
 > **Проверь понимание:** что произойдёт с Deployment, если удалить его YAML из git, а `prune` выключен?
 
 <details markdown="1">
 <summary>Ответ</summary>
 
-Ничего: Deployment останется в кластере и продолжит работать, но Flux больше им не управляет. Так и появляются "призрачные" ресурсы. С `prune: true` он был бы удалён.
+Ничего: Deployment останется в кластере и продолжит работать, но Flux больше им не управляет. Так и появляются «призрачные» ресурсы. С `prune: true` он был бы удалён.
 
 </details>
 
-### Порядок и зависимости: dependsOn
+### Порядок и зависимости: dependsOn и wait
 
-Оператор нельзя применить раньше его CRD, а `ExternalSecret` раньше External Secrets Operator. Поэтому платформа делится на три слоя, и каждый ждёт предыдущий через `dependsOn`:
+**Зачем оно существует.** Одни ресурсы нельзя создать раньше других. Оператор нельзя применить раньше его CRD ([урок 9.2](02-vault-k8s-eso.md)), `ExternalSecret` раньше External Secrets Operator, `Gateway` раньше Gateway API. Если применить всё разом, часть ресурсов упадёт с ошибкой `no matches for kind ...` («такого вида объектов кластер ещё не знает»). Потом Flux повторит попытку и всё сойдётся, но лишь через минуты и с шумом в алертах.
 
-1. `infrastructure` (controllers): контроллеры и операторы (Envoy Gateway, ESO, Vault).
-2. `infrastructure-config` (configs): ресурсы, которые нужны CRD контроллеров (Gateway, `ClusterSecretStore`).
-3. `apps`: само приложение.
+**Как устроено.** Платформу делят на три слоя, и каждый слой это отдельный Flux `Kustomization`. Следующий ждёт предыдущий через `dependsOn`:
 
-`dependsOn` ждёт статуса `Ready=True` у зависимости, а не просто применения. Без него на чистом кластере apps падают с `no matches for kind` и лишь потом, через ретраи, сходятся сами.
+```text
+  ┌──────────────────────────┐   ┌─────────────────────────────┐   ┌──────────────────┐
+  │ infrastructure           │   │ infrastructure-config       │   │ apps             │
+  │ контроллеры и операторы: │──>│ ресурсы, которым нужны CRD: │──>│ приложение notes │
+  │ Envoy Gateway, ESO, Vault│   │ Gateway, ClusterSecretStore │   │ (HelmRelease)    │
+  └──────────────────────────┘   └─────────────────────────────┘   └──────────────────┘
+        dependsOn: нет                dependsOn: infrastructure         dependsOn: infrastructure-config
+```
+
+Два тонких момента:
+
+- `dependsOn` ждёт статуса `Ready=True` у зависимости, а не просто «применено».
+- `wait: true` у зависимого слоя заставляет Flux считать его готовым только когда **ресурсы реально готовы** (поды запущены, релизы установлены). Без `wait` слой готов сразу после применения манифестов, а поды ещё стартуют.
+
+**Разобранный пример.** На чистом кластере `infrastructure` начинает ставить Envoy Gateway (это несколько минут). Слой `infrastructure-config` ждёт: его статус `dependency 'flux-system/infrastructure' is not ready`. Когда установка закончится и у `infrastructure` появится `Ready=True`, Flux применит `Gateway`, потому что CRD уже есть. А после него запустится `apps`.
+
+**Что путают:** «`dependsOn` задаёт порядок применения файлов внутри одного каталога». Нет: он задаёт порядок между Flux `Kustomization`. Внутри одного каталога порядок не гарантирован, поэтому зависимые ресурсы разносят по слоям.
+
+### HelmRelease: как Helm живёт внутри Flux
+
+**Зачем оно существует.** В [уроке 5.9](../05-kubernetes/09-helm.md) ты ставил чарты командой `helm install` руками. В GitOps команды нет: нужно описание «поставь вот этот чарт такой версии с такими values». Это и есть `HelmRelease`.
+
+**Как устроено.** Два объекта:
+
+- `HelmRepository`: откуда брать чарты (адрес репозитория; для чартов из OCI-реестра `type: oci`). OCI-реестр это то же хранилище, что и для образов контейнеров ([урок 4.7](../04-docker/07-images-registry.md)), но для чартов.
+- `HelmRelease`: какой чарт (имя и версия), в какой namespace, с какими values.
+
+Внутри helm-controller запускает настоящий Helm, поэтому `helm list -A` показывает релизы, установленные Flux. Разница в том, что у каждого есть `HelmRelease` в git, и «истинное» состояние определяет он, а не ручные `helm upgrade`.
+
+Важные поля `HelmRelease`:
+
+- `interval` как часто сверять релиз;
+- `chart.spec.version` версия чарта закреплена явно: без этого Flux при выходе новой версии сам обновит релиз;
+- `install.remediation.retries: 3` и `upgrade.remediation.retries: 3` сколько раз повторять при неудаче. После исчерпания повторов Flux **сам больше не пробует**, пока ты не запустишь `flux reconcile helmrelease ... --reset`;
+- `driftDetection: {mode: enabled}` откатывать ручные правки ресурсов релиза;
+- `values` то же самое, что `--set` или `-f values.yaml` в Helm.
+
+**Что путают:** «HelmRelease это та же команда `helm install`». Различие в том, что это **описание**, за которым следит контроллер: если релиз сломается или его кто-то тронет, контроллер вернёт его к описанному.
+
+### Как Flux попадает в кластер: bootstrap
+
+**Зачем оно существует.** Курица и яйцо: кто устанавливает Flux, который должен устанавливать всё остальное? Ответ: один раз руками, командой `flux bootstrap`, а потом Flux управляет и **самим собой**.
+
+**Как устроено.** Команда `flux bootstrap github` делает пять вещей:
+
+1. Создаёт (если нет) репозиторий на GitHub.
+2. Кладёт в него манифесты самого Flux в каталог `clusters/kind/flux-system/` (файлы `gotk-components.yaml` и `gotk-sync.yaml`; gotk это GitOps Toolkit).
+3. Ставит контроллеры Flux в кластер, namespace `flux-system`.
+4. Создаёт в кластере `GitRepository` на этот репозиторий и `Kustomization`, который следит за каталогом.
+5. Добавляет в репозиторий **deploy key** (ключ доступа к одному репозиторию, только чтение по умолчанию) и сохраняет закрытую часть в кластере как Secret.
+
+Следствие: манифесты Flux лежат в git, и обновить сам Flux можно тем же способом, что и приложение: изменить файл в git.
+
+**Что путают:** «Flux нужен доступ к моему GitHub-аккаунту постоянно». Нет: токен нужен только на момент bootstrap (чтобы создать репозиторий и добавить ключ). Дальше Flux пользуется deploy key с доступом к одному репозиторию.
 
 ### Структура репозитория и секреты
 
-Репозиторий `notes-gitops` отделён от кода `notes`: код собирается CI, а желаемое состояние живёт отдельно, у него свои права и свой ритм изменений (подробности разделения: вопрос 9 ниже). Раскладка:
+Репозиторий `notes-gitops` отделён от кода `notes`: код собирает CI, а желаемое состояние живёт отдельно, у него свои права, свой ритм изменений и своя история (плюсы и минусы разделения: вопрос 8 ниже). Раскладка:
 
 ```text
 clusters/kind/        точка входа кластера: flux-system и три Kustomization
@@ -110,19 +262,41 @@ infrastructure/
 apps/notes/           HelmRelease приложения
 ```
 
-Секретов в этом репозитории нет: пароль БД приходит из Vault через ESO ([урок 9.2](02-vault-k8s-eso.md)), в git лежит только `ExternalSecret` со ссылкой на путь. Альтернатива SOPS (шифрование файлов ключом) в курсе не используется.
+Есть важная граница: **git хранит конфигурацию, но не состояние**. Конфигурация это «какие ресурсы должны быть». Состояние это данные, накопленные работой: записи в базе, содержимое Vault (в том числе unseal-ключи и root-токен, [урок 9.1](01-secrets-problem-vault.md)), пароли. Поэтому:
+
+- секретов в этом репозитории нет: пароль базы приходит из Vault через ESO ([урок 9.2](02-vault-k8s-eso.md)), в git лежит только `ExternalSecret` со ссылкой на путь;
+- после создания нового кластера Vault пуст и запечатан, и его надо инициализировать (`scripts/seed-vault.sh`), потому что это состояние, которого в git нет;
+- восстановление кластера из git не восстановит данные баз: для них нужны бэкапы.
+
+Альтернатива для секретов в git: SOPS шифрует файлы ключом, Flux умеет их расшифровывать. В курсе не используется.
+
+### Откат: revert против правки поверх
+
+Когда в `main` попал плохой коммит и релиз сломался, есть три способа исправить.
+
+- **`git revert <коммит>`** создаёт новый коммит, который отменяет изменения плохого. История сохраняется: видно, что было плохое, и что его откатили. Именно так откатывают в GitOps.
+- **Правка поверх** (новый коммит с исправлением) годится, если ты знаешь точную причину и она мелкая.
+- **`git push --force`** переписывает историю. На общей ветке это опасно: у коллег и у самого Flux история расходится, и часть изменений может пропасть.
+
+Ещё один нюанс. При неудачном обновлении Helm по умолчанию оставляет старые поды работать (rolling update, [урок 5.7](../05-kubernetes/07-probes-resources-rollouts.md)): новые поды не становятся готовыми, а старые продолжают отвечать. Поэтому «релиз `Ready=False`» не значит «сервис лежит».
 
 ### Argo CD: сравнение
 
-Argo CD v3.5.3 решает ту же задачу центральным сервером с веб-интерфейсом и деревом ресурсов, объектом `Application` и `ApplicationSet` для многих кластеров. Flux, набор контроллеров без своего UI, ближе к Helm и Kustomize. Оба зрелые и из CNCF: Argo CD выбирают ради панели и многих команд, Flux ради лёгкой схемы. Необязательная установка Argo CD есть в конце практики.
+Argo CD v3.5.3 решает ту же задачу центральным сервером с веб-интерфейсом и деревом ресурсов, объектом `Application`, и `ApplicationSet` для управления многими кластерами. Flux это набор контроллеров без своего UI, он ближе к Helm и Kustomize. Оба зрелые и из CNCF: Argo CD выбирают ради панели и многих команд, Flux ради лёгкой схемы. Необязательная установка Argo CD есть в конце практики.
+
+### Где это встретится дальше
+
+- В [уроке 9.4](04-cert-manager-tls.md) сертификат кластера `notes-tls` перестанет создаваться командой и станет ресурсом в git.
+- В [уроке 9.5](05-cnpg.md) база данных станет ресурсом в git.
+- В [уроке 9.6](06-progressive-delivery.md) выкатка новых версий будет идти постепенно, тоже из git.
 
 ## Практика
 
-Все задания идут на НОВОМ кластере. Старый кластер из тем 5 и 9.1-9.2 создавался ручными командами, а мы хотим доказать, что весь стенд воспроизводится из git.
+Все задания идут на **новом** кластере. Старый кластер из тем 5 и 9.1-9.2 создавался ручными командами, а мы хотим доказать, что весь стенд воспроизводится из git.
 
 ### Если у тебя 8 ГБ
 
-Вместо `replicaCount: 3` ставь `1`, не ставь Vault через Flux (оставь только Envoy Gateway и ESO), . Кластер `notes` с одним worker: убери второй `role: worker` из `kind/kind.yaml` (копию сохрани как `kind/kind-small.yaml`). Остальное работает так же.
+Вместо `replicaCount: 3` ставь `1`, не ставь Vault через Flux (оставь только Envoy Gateway и ESO). Кластер `notes` с одним worker: убери второй `role: worker` из `kind/kind.yaml` (копию сохрани как `kind/kind-small.yaml`). Остальное работает так же.
 
 ### Задание 1. Новый кластер и bootstrap Flux
 
@@ -137,59 +311,70 @@ Argo CD v3.5.3 решает ту же задачу центральным сер
 
 </details>
 
+**Разбор команд.**
+
+- `kind delete cluster --name notes` удаляет старый кластер, `kind create cluster --config ~/notes/kind/kind.yaml` создаёт новый по конфигурации проекта ([урок 5.1](../05-kubernetes/01-why-k8s-cluster.md)).
+- `cd "$(mktemp -d)"`: `mktemp -d` создаёт пустой временный каталог и печатает его путь, `$(...)` подставляет путь в `cd`.
+- `V=2.9.5` переменная с версией, `${V}` подставляет её в адрес. `curl -fsSLO <url>`: `-f` завершиться ошибкой при коде 4xx/5xx, `-s` без прогресса, `-S` но показать ошибку, `-L` идти по перенаправлениям, `-O` сохранить файл под его именем.
+- `sha256sum --ignore-missing -c <файл>`: проверить контрольные суммы из файла (`-c`), пропуская файлы, которых нет рядом (`--ignore-missing`). Так убеждаешься, что архив скачан целым и не подменён. Строка `OK` означает, что сумма совпала.
+- `sudo install -m 0755 flux /usr/local/bin/flux` копирует программу в каталог из `PATH` с правами «запуск всем».
+- `read -rs GITHUB_TOKEN` читает строку в переменную без эха на экран (`-s`) и без обработки обратных слэшей (`-r`). `export` передаёт её программам. Так токен не попадает в историю shell.
+- `flux check --pre` проверяет, что кластер и CLI подходят для установки Flux.
+- `flux bootstrap github --owner ... --repository=notes-gitops --branch=main --path=clusters/kind --personal --private=false`: `--owner` владелец на GitHub, `--path` каталог в репозитории для этого кластера, `--personal` репозиторий принадлежит пользователю (не организации), `--private=false` создать публичный.
+
 **Шаги:**
 
 1. Удали старый кластер и создай новый из конфигурации проекта (данные старого не нужны):
 
-   ```bash
-   kind delete cluster --name notes
-   kind create cluster --config ~/notes/kind/kind.yaml
-   kubectl config use-context kind-notes
-   kubectl get nodes
-   ```
+```bash
+kind delete cluster --name notes
+kind create cluster --config ~/notes/kind/kind.yaml
+kubectl config use-context kind-notes
+kubectl get nodes
+```
 
-2. Установи flux CLI v2.9.5 со сверкой SHA256 (без `curl | bash`):
+2. Установи flux CLI v2.9.5 со сверкой SHA256 (без `curl | bash`, чтобы проверить, что скачал то, что нужно):
 
-   ```bash
-   cd "$(mktemp -d)"   # временный каталог
-   V=2.9.5
-   curl -fsSLO "https://github.com/fluxcd/flux2/releases/download/v${V}/flux_${V}_linux_amd64.tar.gz"
-   curl -fsSLO "https://github.com/fluxcd/flux2/releases/download/v${V}/flux_${V}_checksums.txt"
-   sha256sum --ignore-missing -c "flux_${V}_checksums.txt"
-   tar -xzf "flux_${V}_linux_amd64.tar.gz"
-   sudo install -m 0755 flux /usr/local/bin/flux
-   flux --version
-   ```
+```bash
+cd "$(mktemp -d)"   # временный каталог
+V=2.9.5
+curl -fsSLO "https://github.com/fluxcd/flux2/releases/download/v${V}/flux_${V}_linux_amd64.tar.gz"
+curl -fsSLO "https://github.com/fluxcd/flux2/releases/download/v${V}/flux_${V}_checksums.txt"
+sha256sum --ignore-missing -c "flux_${V}_checksums.txt"
+tar -xzf "flux_${V}_linux_amd64.tar.gz"
+sudo install -m 0755 flux /usr/local/bin/flux
+flux --version
+```
 
-   На ARM (Apple Silicon, ВМ на ARM) замени `amd64` на `arm64`.
+На ARM (Apple Silicon, ВМ на ARM) замени `amd64` на `arm64`.
 
 3. Создай на GitHub пустой публичный репозиторий `notes-gitops` (без README). Создай fine-grained токен только на этот репозиторий с правами Contents: Read and write и Administration: Read and write (второе нужно, чтобы bootstrap добавил deploy key). Токен не пиши в файлы и историю:
 
-   ```bash
-   export GITHUB_USER=<твой-логин>
-   read -rs GITHUB_TOKEN && export GITHUB_TOKEN   # вставь токен и Enter, он не отобразится
-   flux check --pre
-   ```
+```bash
+export GITHUB_USER=<твой-логин>
+read -rs GITHUB_TOKEN && export GITHUB_TOKEN   # вставь токен и Enter, он не отобразится
+flux check --pre
+```
 
 4. Запусти bootstrap:
 
-   ```bash
-   flux bootstrap github \
-     --owner="$GITHUB_USER" \
-     --repository=notes-gitops \
-     --branch=main \
-     --path=clusters/kind \
-     --personal --private=false
-   ```
+```bash
+flux bootstrap github \
+  --owner="$GITHUB_USER" \
+  --repository=notes-gitops \
+  --branch=main \
+  --path=clusters/kind \
+  --personal --private=false
+```
 
 5. Клонируй репозиторий и посмотри, что сделал Flux:
 
-   ```bash
-   git clone "git@github.com:${GITHUB_USER}/notes-gitops.git" ~/notes-gitops
-   ls ~/notes-gitops/clusters/kind/flux-system
-   kubectl get pods -n flux-system
-   flux get sources git
-   ```
+```bash
+git clone "git@github.com:${GITHUB_USER}/notes-gitops.git" ~/notes-gitops
+ls ~/notes-gitops/clusters/kind/flux-system
+kubectl get pods -n flux-system
+flux get sources git
+```
 
 **Что должно получиться:**
 
@@ -199,6 +384,8 @@ flux-system      main@sha1:3f9c1a2     False      True   stored artifact for rev
 ```
 
 В `flux-system` четыре пода `Running`, а каталог содержит `gotk-components.yaml`, `gotk-sync.yaml`, `kustomization.yaml`.
+
+**Как читать вывод:** колонка `REVISION` показывает ветку и сокращённый хеш последнего коммита, который Flux скачал (у тебя он другой). `READY True` и сообщение `stored artifact` значит, что source-controller успешно забрал репозиторий. `SUSPENDED False` значит, что источник не приостановлен.
 
 **Объясни себе:**
 
@@ -223,126 +410,134 @@ flux-system      main@sha1:3f9c1a2     False      True   stored artifact for rev
 
 </details>
 
+**Разбор новых частей.**
+
+- Формат `metadata: {name: envoy-gateway, namespace: flux-system}` в YAML это короткая запись словаря в одну строку (то же, что три строки с отступами).
+- Три `HelmRepository` описывают, откуда брать чарты. Envoy Gateway лежит в OCI-реестре (`type: oci`, `oci://docker.io/envoyproxy`), ESO и Vault в обычных Helm-репозиториях.
+- `install: {createNamespace: true, crds: CreateReplace}` создать namespace при установке и обновлять CRD чарта при установке и апгрейде (Helm по умолчанию CRD не обновляет).
+- Функция `mk` в оболочке: пять `echo` собирают YAML-файл для Flux `Kustomization`. Аргументы: имя слоя (`$1`), путь (`$2`), зависимость (`$3`). Строка с `dependsOn` печатается, только если третий аргумент не пустой (`[ -n "$3" ]`). Такая функция нужна, чтобы не набирать три почти одинаковых файла вручную.
+- `flux reconcile source git flux-system` просит Flux не ждать таймера и прямо сейчас перечитать git. `flux get kustomizations --watch` печатает статусы и обновляет их (выход `Ctrl+C`).
+
 **Шаги:**
 
 1. Создай структуру:
 
-   ```bash
-   cd ~/notes-gitops
-   mkdir -p infrastructure/controllers infrastructure/configs apps/notes
-   ```
+```bash
+cd ~/notes-gitops
+mkdir -p infrastructure/controllers infrastructure/configs apps/notes
+```
 
-2. Источники чартов и релизы одним файлом `infrastructure/controllers/releases.yaml`: Envoy Gateway v1.9.2, ESO v2.11.0 и Vault (standalone, файловое хранилище, как в [уроке 9.1](01-secrets-problem-vault.md)); версию чарта Vault сверь: проверь актуальную версию на странице проекта. Источники лежат в `flux-system`, релизы ставят чарты в свои namespace:
+2. Источники чартов и релизы одним файлом `infrastructure/controllers/releases.yaml`: Envoy Gateway v1.9.2, ESO v2.11.0 и Vault (standalone, файловое хранилище, как в [уроке 9.1](01-secrets-problem-vault.md)). Версию чарта Vault (`0.32.0` ниже) сверь: проверь актуальную версию на странице проекта. Источники лежат в `flux-system`, релизы ставят чарты в свои namespace:
 
-   ```yaml
-   apiVersion: source.toolkit.fluxcd.io/v1
-   kind: HelmRepository
-   metadata: {name: envoy-gateway, namespace: flux-system}
-   spec: {type: oci, interval: 1h, url: "oci://docker.io/envoyproxy"}   # чарт в OCI-реестре
-   ---
-   apiVersion: source.toolkit.fluxcd.io/v1
-   kind: HelmRepository
-   metadata: {name: external-secrets, namespace: flux-system}
-   spec: {interval: 1h, url: "https://charts.external-secrets.io"}
-   ---
-   apiVersion: source.toolkit.fluxcd.io/v1
-   kind: HelmRepository
-   metadata: {name: hashicorp, namespace: flux-system}
-   spec: {interval: 1h, url: "https://helm.releases.hashicorp.com"}
-   ---
-   apiVersion: helm.toolkit.fluxcd.io/v2
-   kind: HelmRelease
-   metadata: {name: envoy-gateway, namespace: flux-system}
-   spec:
-     interval: 10m
-     targetNamespace: envoy-gateway-system
-     install: {createNamespace: true, crds: CreateReplace}
-     upgrade: {crds: CreateReplace}
-     chart:
-       spec: {chart: gateway-helm, version: "1.9.2", sourceRef: {kind: HelmRepository, name: envoy-gateway}}
-   ---
-   apiVersion: helm.toolkit.fluxcd.io/v2
-   kind: HelmRelease
-   metadata: {name: external-secrets, namespace: flux-system}
-   spec:
-     interval: 10m
-     targetNamespace: external-secrets
-     install: {createNamespace: true}
-     chart:
-       spec: {chart: external-secrets, version: "2.11.0", sourceRef: {kind: HelmRepository, name: external-secrets}}
-   ---
-   apiVersion: helm.toolkit.fluxcd.io/v2
-   kind: HelmRelease
-   metadata: {name: vault, namespace: flux-system}
-   spec:
-     interval: 10m
-     targetNamespace: vault
-     install: {createNamespace: true}
-     chart:
-       spec: {chart: vault, version: "0.32.0", sourceRef: {kind: HelmRepository, name: hashicorp}}
-     values:
-       server: {standalone: {enabled: true}, dataStorage: {size: 1Gi}}
-   ```
+```yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: envoy-gateway, namespace: flux-system}
+spec: {type: oci, interval: 1h, url: "oci://docker.io/envoyproxy"}   # чарт в OCI-реестре
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: external-secrets, namespace: flux-system}
+spec: {interval: 1h, url: "https://charts.external-secrets.io"}
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: hashicorp, namespace: flux-system}
+spec: {interval: 1h, url: "https://helm.releases.hashicorp.com"}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: envoy-gateway, namespace: flux-system}
+spec:
+  interval: 10m
+  targetNamespace: envoy-gateway-system
+  install: {createNamespace: true, crds: CreateReplace}
+  upgrade: {crds: CreateReplace}
+  chart:
+    spec: {chart: gateway-helm, version: "1.9.2", sourceRef: {kind: HelmRepository, name: envoy-gateway}}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: external-secrets, namespace: flux-system}
+spec:
+  interval: 10m
+  targetNamespace: external-secrets
+  install: {createNamespace: true}
+  chart:
+    spec: {chart: external-secrets, version: "2.11.0", sourceRef: {kind: HelmRepository, name: external-secrets}}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: vault, namespace: flux-system}
+spec:
+  interval: 10m
+  targetNamespace: vault
+  install: {createNamespace: true}
+  chart:
+    spec: {chart: vault, version: "0.32.0", sourceRef: {kind: HelmRepository, name: hashicorp}}
+  values:
+    server: {standalone: {enabled: true}, dataStorage: {size: 1Gi}}
+```
 
 3. Список ресурсов слоя (`kustomization.yaml` из [урока 5.10](../05-kubernetes/10-kustomize.md)):
 
-   ```bash
-   cat > infrastructure/controllers/kustomization.yaml <<'YAML'
-   apiVersion: kustomize.config.k8s.io/v1beta1
-   kind: Kustomization
-   resources:
-     - releases.yaml
-   YAML
-   ```
+```bash
+cat > infrastructure/controllers/kustomization.yaml <<'YAML'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - releases.yaml
+YAML
+```
 
 4. Конфиги платформы. Namespace и Gateway берём из своего проекта как есть, `ClusterSecretStore` тоже:
 
-   ```bash
-   cat ~/notes/k8s/base/00-namespace.yaml \
-       ~/notes/k8s/base/30-envoyproxy.yaml \
-       ~/notes/k8s/base/31-gateway.yaml > infrastructure/configs/gateway.yaml
-   cp ~/notes/k8s/platform/clustersecretstore.yaml infrastructure/configs/clustersecretstore.yaml
-   cat > infrastructure/configs/kustomization.yaml <<'YAML'
-   apiVersion: kustomize.config.k8s.io/v1beta1
-   kind: Kustomization
-   resources:
-     - gateway.yaml
-     - clustersecretstore.yaml
-   YAML
-   ```
+```bash
+cat ~/notes/k8s/base/00-namespace.yaml \
+    ~/notes/k8s/base/30-envoyproxy.yaml \
+    ~/notes/k8s/base/31-gateway.yaml > infrastructure/configs/gateway.yaml
+cp ~/notes/k8s/platform/clustersecretstore.yaml infrastructure/configs/clustersecretstore.yaml
+cat > infrastructure/configs/kustomization.yaml <<'YAML'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - gateway.yaml
+  - clustersecretstore.yaml
+YAML
+```
 
-   Namespace `notes` теперь создаёт Flux, а не ты.
+Namespace `notes` теперь создаёт Flux, а не ты.
 
 5. Три Flux-`Kustomization` в `clusters/kind/` (у первого нет зависимостей, у остальных `dependsOn` на предыдущий):
 
-   ```bash
-   mk() {  # имя, путь, зависимость, wait
-     { echo "apiVersion: kustomize.toolkit.fluxcd.io/v1"
-       echo "kind: Kustomization"
-       echo "metadata: {name: $1, namespace: flux-system}"
-       echo "spec:"
-       echo "  interval: 10m"
-       echo "  path: $2"
-       echo "  prune: true"
-       echo "  wait: true          # Ready только когда ресурсы реально готовы"
-       echo "  timeout: 10m"
-       [ -n "$3" ] && printf '  dependsOn:\n    - name: %s\n' "$3"
-       echo "  sourceRef: {kind: GitRepository, name: flux-system}"
-     } > "clusters/kind/$1.yaml"; }
-   mk infrastructure ./infrastructure/controllers ""
-   mk infrastructure-config ./infrastructure/configs infrastructure
-   mk apps ./apps/notes infrastructure-config
-   cat clusters/kind/apps.yaml
-   ```
+```bash
+mk() {  # имя, путь, зависимость, wait
+  { echo "apiVersion: kustomize.toolkit.fluxcd.io/v1"
+    echo "kind: Kustomization"
+    echo "metadata: {name: $1, namespace: flux-system}"
+    echo "spec:"
+    echo "  interval: 10m"
+    echo "  path: $2"
+    echo "  prune: true"
+    echo "  wait: true          # Ready только когда ресурсы реально готовы"
+    echo "  timeout: 10m"
+    [ -n "$3" ] && printf '  dependsOn:\n    - name: %s\n' "$3"
+    echo "  sourceRef: {kind: GitRepository, name: flux-system}"
+  } > "clusters/kind/$1.yaml"; }
+mk infrastructure ./infrastructure/controllers ""
+mk infrastructure-config ./infrastructure/configs infrastructure
+mk apps ./apps/notes infrastructure-config
+cat clusters/kind/apps.yaml
+```
 
 6. Положи заглушку и запушь. `apps/notes/kustomization.yaml` пока с пустым списком ресурсов:
 
-   ```bash
-   printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources: []\n' > apps/notes/kustomization.yaml
-   git add -A && git commit -m "Инфраструктура платформы и слои dependsOn" && git push
-   flux reconcile source git flux-system
-   flux get kustomizations --watch
-   ```
+```bash
+printf 'apiVersion: kustomize.config.k8s.io/v1beta1\nkind: Kustomization\nresources: []\n' > apps/notes/kustomization.yaml
+git add -A && git commit -m "Инфраструктура платформы и слои dependsOn" && git push
+flux reconcile source git flux-system
+flux get kustomizations --watch
+```
 
 **Что должно получиться:** через несколько минут (на первом запуске скачиваются образы):
 
@@ -354,6 +549,8 @@ infrastructure         main@sha1:8d2e0c4  False      True   Applied revision: ma
 ```
 
 Затем `kubectl get gateway -n notes` показывает `notes-gw`, а под Vault `0/1`: он запечатан, это нормально.
+
+**Как читать вывод:** каждая строка это один Flux `Kustomization`. Все должны прийти к `READY True` и одинаковой `REVISION`: они применили один и тот же коммит. Пока идёт установка, в `MESSAGE` у зависимых слоёв будет `dependency ... is not ready`: это и есть работа `dependsOn`, ошибки в этом нет.
 
 **Объясни себе:**
 
@@ -378,97 +575,106 @@ infrastructure         main@sha1:8d2e0c4  False      True   Applied revision: ma
 
 </details>
 
+**Разбор команд.**
+
+- `helm package helm/notes --destination /tmp` упаковывает каталог чарта в архив `notes-0.4.0.tgz` (версия берётся из `Chart.yaml`).
+- `echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$GITHUB_USER" --password-stdin` входит в реестр, читая пароль из стандартного ввода (так токен не попадает в аргументы команды и историю).
+- `helm push <архив> oci://ghcr.io/<логин>/charts` отправляет чарт в реестр как OCI-артефакт.
+- `flux reconcile kustomization apps --with-source` просит перечитать сначала git, потом применить слой `apps` немедленно.
+- `sed -i 's/replicaCount: 3/replicaCount: 4/' файл` заменяет в файле текст (`s/что/на что/`), флаг `-i` правит на месте.
+- `git commit -am "..."` делает коммит всех изменённых отслеживаемых файлов, `git revert --no-edit HEAD` создаёт коммит, отменяющий последний, без открытия редактора.
+
 **Шаги:**
 
 1. Упакуй чарт и опубликуй в OCI-реестр ghcr.io (версия чарта 0.4.0, appVersion 0.7.0):
 
-   ```bash
-   cd ~/notes
-   helm package helm/notes --destination /tmp
-   echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$GITHUB_USER" --password-stdin
-   helm push /tmp/notes-0.4.0.tgz "oci://ghcr.io/${GITHUB_USER}/charts"
-   ```
+```bash
+cd ~/notes
+helm package helm/notes --destination /tmp
+echo "$GITHUB_TOKEN" | helm registry login ghcr.io -u "$GITHUB_USER" --password-stdin
+helm push /tmp/notes-0.4.0.tgz "oci://ghcr.io/${GITHUB_USER}/charts"
+```
 
-   Токену для записи пакетов нужно право `write:packages` (для fine-grained токена GitHub Packages не подходит, используй classic PAT только с этим правом). В GitHub открой пакет `charts/notes` и сделай его публичным (Package settings, Change visibility), иначе Flux не сможет его скачать без секрета.
+Токену для записи пакетов нужно право `write:packages` (для fine-grained токена GitHub Packages не подходит, используй classic PAT только с этим правом). В GitHub открой пакет `charts/notes` и сделай его публичным (Package settings, Change visibility), иначе Flux не сможет его скачать без секрета.
 
 2. Пропиши приложение. `~/notes-gitops/apps/notes/release.yaml` (подставь свой логин вместо `<github-user>`):
 
-   ```yaml
-   apiVersion: source.toolkit.fluxcd.io/v1
-   kind: HelmRepository
-   metadata: {name: notes, namespace: notes}
-   spec: {type: oci, interval: 10m, url: "oci://ghcr.io/<github-user>/charts"}
-   ---
-   apiVersion: helm.toolkit.fluxcd.io/v2
-   kind: HelmRelease
-   metadata: {name: notes, namespace: notes}
-   spec:
-     interval: 5m
-     chart:
-       spec: {chart: notes, version: "0.4.0", sourceRef: {kind: HelmRepository, name: notes}}
-     install: {remediation: {retries: 3}}
-     upgrade: {remediation: {retries: 3}}
-     driftDetection: {mode: enabled}      # откатывать ручные правки ресурсов релиза
-     values:
-       replicaCount: 3
-       image: {repository: "ghcr.io/<github-user>/notes", tag: "0.7.0"}
-       externalSecret: {enabled: true}
-   ```
+```yaml
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata: {name: notes, namespace: notes}
+spec: {type: oci, interval: 10m, url: "oci://ghcr.io/<github-user>/charts"}
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata: {name: notes, namespace: notes}
+spec:
+  interval: 5m
+  chart:
+    spec: {chart: notes, version: "0.4.0", sourceRef: {kind: HelmRepository, name: notes}}
+  install: {remediation: {retries: 3}}
+  upgrade: {remediation: {retries: 3}}
+  driftDetection: {mode: enabled}      # откатывать ручные правки ресурсов релиза
+  values:
+    replicaCount: 3
+    image: {repository: "ghcr.io/<github-user>/notes", tag: "0.7.0"}
+    externalSecret: {enabled: true}
+```
 
 3. Подключи файл и запушь:
 
-   ```bash
-   cd ~/notes-gitops
-   cat > apps/notes/kustomization.yaml <<'YAML'
-   apiVersion: kustomize.config.k8s.io/v1beta1
-   kind: Kustomization
-   resources:
-     - release.yaml
-   YAML
-   git add -A && git commit -m "Приложение notes через HelmRelease" && git push
-   flux reconcile kustomization apps --with-source
-   flux get helmreleases -n notes
-   ```
+```bash
+cd ~/notes-gitops
+cat > apps/notes/kustomization.yaml <<'YAML'
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - release.yaml
+YAML
+git add -A && git commit -m "Приложение notes через HelmRelease" && git push
+flux reconcile kustomization apps --with-source
+flux get helmreleases -n notes
+```
 
-4. Vault на новом кластере пуст и запечатан, а это состояние, а не конфигурация, в git его нет. Инициализируй как в 9.1 (`scripts/seed-vault.sh`), затем проверь ESO:
+4. Vault на новом кластере пуст и запечатан, а это состояние, а не конфигурация: в git его нет. Инициализируй как в 9.1 (`scripts/seed-vault.sh`), затем проверь ESO:
 
-   ```bash
-   cd ~/notes && bash scripts/seed-vault.sh
-   kubectl get externalsecret -n notes
-   kubectl get pods -n notes
-   ```
+```bash
+cd ~/notes && bash scripts/seed-vault.sh
+kubectl get externalsecret -n notes
+kubectl get pods -n notes
+```
 
-   Секрет `notes-tls` из [урока 5.4](../05-kubernetes/04-ingress-gateway.md) создаётся командой и в git не хранится (автоматически им займётся cert-manager в уроке 9.4). Создай его командой из своей заметки 5.4, если Gateway жалуется на его отсутствие.
+Секрет `notes-tls` из [урока 5.4](../05-kubernetes/04-ingress-gateway.md) создаётся командой и в git не хранится (автоматически им займётся cert-manager в [уроке 9.4](04-cert-manager-tls.md)). Создай его командой из своей заметки 5.4, если Gateway жалуется на его отсутствие.
 
 5. Измени реплики через git (GNU `sed`; на macOS `sed -i ''`):
 
-   ```bash
-   cd ~/notes-gitops
-   sed -i 's/replicaCount: 3/replicaCount: 4/' apps/notes/release.yaml
-   git commit -am "Реплик notes: 4" && git push
-   flux reconcile kustomization apps --with-source
-   kubectl get deployment notes -n notes
-   ```
+```bash
+cd ~/notes-gitops
+sed -i 's/replicaCount: 3/replicaCount: 4/' apps/notes/release.yaml
+git commit -am "Реплик notes: 4" && git push
+flux reconcile kustomization apps --with-source
+kubectl get deployment notes -n notes
+```
 
 6. Теперь вмешайся руками, как в инциденте:
 
-   ```bash
-   kubectl scale deployment notes -n notes --replicas=10
-   kubectl get deployment notes -n notes
-   sleep 90
-   kubectl get deployment notes -n notes
-   ```
+```bash
+kubectl scale deployment notes -n notes --replicas=10
+kubectl get deployment notes -n notes
+sleep 90
+kubectl get deployment notes -n notes
+```
 
 7. Сломай тег образа и откати через историю (`git revert`, а не правка поверх):
 
-   ```bash
-   sed -i 's/tag: "0.7.0"/tag: "9.9.9"/' apps/notes/release.yaml
-   git commit -am "Плохой тег образа" && git push
-   flux reconcile kustomization apps --with-source
-   flux get helmreleases -n notes           # Ready=False, старые поды живы
-   git revert --no-edit HEAD && git push
-   flux reconcile kustomization apps --with-source
-   ```
+```bash
+sed -i 's/tag: "0.7.0"/tag: "9.9.9"/' apps/notes/release.yaml
+git commit -am "Плохой тег образа" && git push
+flux reconcile kustomization apps --with-source
+flux get helmreleases -n notes           # Ready=False, старые поды живы
+git revert --no-edit HEAD && git push
+flux reconcile kustomization apps --with-source
+```
 
 **Что должно получиться:** после шага 3 релиз `Ready`, после шага 5 в Deployment 4/4, после шага 6 сначала `10/10`, затем снова `4/4`. На шаге 7 релиз `Ready=False` (старые поды продолжают отвечать, rolling update из [урока 5.7](../05-kubernetes/07-probes-resources-rollouts.md)), после `revert` снова `Ready=True`, а в `git log` две записи.
 
@@ -476,6 +682,8 @@ infrastructure         main@sha1:8d2e0c4  False      True   Applied revision: ma
 NAME        REVISION  SUSPENDED  READY  MESSAGE
 notes       0.4.0     False      True   Helm install succeeded for release notes/notes.v1 with chart notes@0.4.0
 ```
+
+**Как читать вывод:** `REVISION 0.4.0` это версия чарта; `notes.v1` в сообщении номер ревизии релиза в Helm (после каждого `upgrade` он растёт: `v2`, `v3`). Колонка `READY` показывает, что релиз применился. На шаге 6 сначала `10/10` (ручная правка), потом снова `4/4` (дрейф откатили): задержку до минуты-двух вызывает интервал сверки. На шаге 7 в `MESSAGE` будет причина ошибки (`Helm upgrade failed`, а внутри `context deadline exceeded` или проблема с образом).
 
 **Объясни себе:**
 
@@ -506,18 +714,18 @@ notes       0.4.0     False      True   Helm install succeeded for release notes
 
 1. Проверь, что кластер полностью собран из git:
 
-   ```bash
-   flux get all -A
-   helm list -A
-   ```
+```bash
+flux get all -A
+helm list -A
+```
 
-2. Зеркало эталона в основном репозитории (репозиторий `~/notes` остаётся единственным на курс, а `notes-gitops` служит источником для Flux):
+2. Зеркало эталона в основном репозитории (репозиторий `~/notes` остаётся единственным на курс, а `notes-gitops` служит источником для Flux). `rsync -a --exclude .git` копирует каталог, сохраняя права и время, и не берёт служебный `.git`:
 
-   ```bash
-   mkdir -p ~/notes/gitops
-   rsync -a --exclude .git ~/notes-gitops/ ~/notes/gitops/
-   cd ~/notes && git add gitops && git commit -m "gitops: зеркало репозитория notes-gitops (урок 9.3)"
-   ```
+```bash
+mkdir -p ~/notes/gitops
+rsync -a --exclude .git ~/notes-gitops/ ~/notes/gitops/
+cd ~/notes && git add gitops && git commit -m "gitops: зеркало репозитория notes-gitops (урок 9.3)"
+```
 
 **Что должно получиться:** `flux get all` без `False` в колонке READY, `helm list` показывает четыре релиза, а у каждого есть `HelmRelease` в git.
 
@@ -525,6 +733,8 @@ notes       0.4.0     False      True   Helm install succeeded for release notes
 NAME   NAMESPACE  REVISION  STATUS    CHART        APP VERSION
 notes  notes      1         deployed  notes-0.4.0  0.7.0
 ```
+
+**Как читать вывод:** пример показывает только строку `notes`, у тебя будут ещё три релиза. `STATUS deployed` значит, что Helm считает релиз установленным, `REVISION` это счётчик версий релиза.
 
 Состояние проекта: репозиторий `notes-gitops` с каталогами `clusters/kind`, `infrastructure`, `apps/notes`, Flux v2.9.5, цепочка `dependsOn` от controllers к configs и apps. Эталон: [gitops/](https://github.com/distinguished-sre/devops/tree/devops/project/notes/gitops). Долг: сертификат `notes-tls` создан командой (закроет 9.4), Postgres пока StatefulSet (закроет 9.5).
 
@@ -534,25 +744,31 @@ notes  notes      1         deployed  notes-0.4.0  0.7.0
 
 **Типичные ошибки:**
 
+- `rsync: command not found`: установи (`sudo apt install rsync`) или скопируй каталог через `cp -r`, исключив `.git` вручную.
+- `flux get all -A` показывает `False` у `HelmRelease vault`: чарт Vault ставится, но под запечатан. Проверь `kubectl -n vault get pods` (`0/1` до `seed-vault.sh` нормально, проба готовности не пройдёт).
+
 ### Дополнительно: Argo CD (необязательно, вне цепочки проекта)
 
 Для сравнения поставь Argo CD v3.5.3 в отдельный namespace, открой UI через `kubectl -n argocd port-forward svc/argocd-server 8081:443` и создай `Application` на каталог `apps/notes`. Установка: `kubectl create namespace argocd`, затем `kubectl apply -n argocd --server-side -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.5.3/manifests/install.yaml`. Пароль `admin` читай из секрета `argocd-initial-admin-secret` и нигде не сохраняй. Убери эксперимент: `kubectl delete namespace argocd`.
 
 ## Сломай и почини
 
-Скрипт ломает стенд одним из четырёх способов. Запусти из `~/notes`, не читая его:
+Скачай скрипт и запусти сценарий. Не читай его: причину нужно найти диагностикой. Понадобится кластер из заданий 1-3.
 
 ```bash
-bash break/9.3/break.sh 1     # номер от 1 до 4, или random
+curl -fsSL -o /tmp/break-9.3.sh https://raw.githubusercontent.com/distinguished-sre/devops/devops/project/notes/break/9.3/break.sh
+bash /tmp/break-9.3.sh 1      # номер от 1 до 4, или random
 ```
+
+Починка: `bash /tmp/break-9.3.sh fix` (только после собственной попытки).
 
 ### Симптом
 
-Ты ничего не менял в git, но после действия `flux get all -A` показывает `READY False` или изменение из git не доезжает до кластера.
+Ты ничего не менял в git, но `flux get all -A` показывает `READY False`, изменение из git не доезжает до кластера или правка, которую ты сделал руками, исчезла.
 
 ### Гипотезы
 
-Сформулируй по симптому до проверок: не может прочитать репозиторий (доступ), не находит путь (структура), не ставится чарт (values, образ, реестр), ресурс есть, но правится руками (дрейф). Подумай, какой контроллер отвечает за каждый случай.
+Сформулируй по симптому до проверок: не может прочитать репозиторий (доступ или адрес), не находит путь (структура), не ставится чарт (values, образ, реестр), ресурс есть, но правится руками (дрейф). Подумай, какой контроллер отвечает за каждый случай.
 
 ### Проверки
 
@@ -565,131 +781,189 @@ kubectl describe helmrelease notes -n notes
 
 ### Исправление
 
-Почини командой `bash break/9.3/fix.sh` только после собственной попытки. Разбор сценариев:
-
 <details markdown="1">
-<summary>1. GitRepository: authentication required</summary>
+<summary>Разбор четырёх сценариев</summary>
 
-Симптом: `flux get sources git` показывает `False` и `authentication required`. Причина: deploy key или токен отозваны, либо репозиторий стал приватным без секрета. Исправление: `flux create secret git ...` или повторный `flux bootstrap github` (он идемпотентный и пересоздаст ключ), затем `flux reconcile source git flux-system`.
+**1. GitRepository не читается.** `flux get sources git` показывает `False` и текст вроде `authentication required` или `repository not found`. Причина: отозван deploy key или токен, репозиторий стал приватным без секрета, либо в `spec.url` неверный адрес (в учебном сценарии адрес испорчен). Исправление: восстановить адрес или доступ (`flux create secret git ...`, повторный `flux bootstrap github` идемпотентный и пересоздаст ключ), затем `flux reconcile source git flux-system`.
+
+**2. HelmRelease: install retries exhausted.** `Helm upgrade failed ... retries exhausted`, `Ready=False`. Причина в этом сценарии: неверный тег образа в values, новые поды не становятся готовыми (`ImagePullBackOff`), а старые продолжают работать. Проверка: `flux logs --kind=HelmRelease --name=notes -n notes`, `kubectl describe pod`. Исправление: правка values в git (в сценарии ещё приостановлен слой `apps`, `flux resume kustomization apps`), затем `flux reconcile helmrelease notes -n notes --reset`, чтобы сбросить счётчик ретраев (после исчерпания он сам не пробует заново).
+
+**3. Kustomization path not found.** `kustomization path not found: stat .../apps/notes-typo: no such file or directory`. Причина: каталог переименован или `spec.path` указывает на несуществующий. Проверка: `git ls-tree -r main --name-only` и `kubectl get kustomization apps -n flux-system -o yaml`. Исправление: привести путь и каталог в соответствие (в git, затем `flux resume`). Зависимые Kustomization при этом остаются в `not ready`.
+
+**4. Ручной kubectl scale затирается.** Ты увеличил реплики руками, и через минуты они вернулись. Это не поломка, а штатное поведение: git главнее. Проверка: `flux events --for HelmRelease/notes -n notes` покажет обнаруженный дрейф. Исправление: вносить правку в git; если нужна временная ручная работа, `flux suspend kustomization apps`, а после `flux resume kustomization apps`.
 
 </details>
 
-<details markdown="1">
-<summary>2. HelmRelease: install retries exhausted</summary>
+## Словарик урока
 
-Симптом: `Helm install failed ... install retries exhausted`, `Ready=False`. Причина в этом сценарии: неверная версия чарта или values. Проверка: `flux logs --kind=HelmRelease --name=notes -n notes`, `helm show values` соответствующего чарта, `kubectl describe pod` (тег образа, ошибки пробы). Исправление: правка в git, затем `flux reconcile helmrelease notes -n notes --reset`, чтобы сбросить счётчик ретраев (после исчерпания он сам не пробует заново).
-
-</details>
-
-<details markdown="1">
-<summary>3. kustomization path not found</summary>
-
-Симптом: `kustomization path not found: stat .../apps/notes: no such file or directory`. Причина: каталог переименован или `spec.path` в `apps.yaml` указывает на несуществующий. Проверка: `git ls-tree -r main --name-only` и `kubectl get kustomization apps -n flux-system -o yaml`. Исправление: привести путь и каталог в соответствие и запушить. Зависимые Kustomization при этом остаются в `not ready`.
-
-</details>
-
-<details markdown="1">
-<summary>4. Ручной kubectl edit затирается</summary>
-
-Симптом: ты поправил Deployment или ConfigMap руками, и через минуты правка исчезла. Это не поломка, а штатное поведение: git главнее. Проверка: `flux events --for HelmRelease/notes -n notes` покажет `drift detected`. Исправление: вносить правку в git; если нужна временная ручная работа, `flux suspend kustomization apps`, а после `flux resume kustomization apps`.
-
-</details>
+| Термин | Простыми словами |
+|---|---|
+| GitOps | подход: желаемое состояние в git, агент в кластере само приводит кластер к нему |
+| декларативный подход | описываешь итог («должно быть три реплики»), а не шаги |
+| push / pull | CI толкает изменения в кластер / агент внутри кластера сам забирает их из git |
+| Flux | набор контроллеров, реализующих GitOps |
+| source-controller | скачивает git и Helm-репозитории |
+| kustomize-controller | применяет манифесты из источника |
+| helm-controller | устанавливает и обновляет Helm-релизы |
+| GitRepository | описание репозитория, за которым следит Flux |
+| Kustomization (Flux) | «применить этот путь из этого источника» |
+| kustomization.yaml | файл Kustomize, собирающий YAML в набор (не то же самое, что Flux Kustomization) |
+| HelmRepository | описание, откуда брать Helm-чарты (в том числе OCI-реестр) |
+| HelmRelease | описание Helm-релиза для helm-controller |
+| OCI-реестр | хранилище артефактов, в том числе Helm-чартов, как реестр образов |
+| reconcile | цикл сверки желаемого с фактическим и исправления разницы |
+| drift (дрейф) | расхождение кластера с git из-за ручных правок |
+| prune | удаление из кластера ресурсов, которых больше нет в git |
+| dependsOn | «применяй этот слой только после того, как заданный слой стал Ready» |
+| bootstrap | однократная установка Flux в кластер вместе с записью его манифестов в git |
+| deploy key | ключ доступа к одному репозиторию |
+| kubeconfig | файл с адресом кластера и учётными данными |
+| git revert | коммит, отменяющий изменения другого коммита, без переписывания истории |
 
 ## Вопросы с собеседований
 
+Раздел для повторения: ответь вслух, потом открой ответ.
+
 ### 1. [junior] Чем GitOps отличается от обычного CI/CD с деплоем из пайплайна?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 В обычном CI/CD пайплайн толкает изменения в кластер (push). В GitOps агент внутри кластера сам тянет желаемое состояние из git (pull) и постоянно сверяет с фактом. Деплой равен merge, откат равен revert, а история в git.
 
 **Что хотят услышать:** pull против push, у CI нет прав на кластер, постоянный reconcile и исправление дрейфа, аудит через git.
 
-**Красный флаг:** "это когда манифесты лежат в git" без слов про агента и сверку.
+**Красный флаг:** «это когда манифесты лежат в git» без слов про агента и сверку.
+
+</details>
 
 ### 2. [middle] Через минуту после `kubectl scale` число реплик вернулось. Что происходит и что делать?
 
+<details markdown="1">
+<summary>Ответ</summary>
+
 Это reconcile: Flux сравнил кластер с git и вернул записанное. Значит, число реплик задаётся в git. Я меняю `replicaCount` в values через PR. Если нужна временная ручная правка на время инцидента, приостанавливаю `Kustomization` и обязательно возвращаю.
 
-**Что хотят услышать:** drift detection, `flux suspend/resume`, источник правды в git, HPA как исключение (реплики под контролем автоскейлера).
+**Что хотят услышать:** drift detection, `flux suspend/resume`, источник правды в git, HPA (автоскейлер, сам меняющий число реплик) как исключение.
 
-**Красный флаг:** "отключу Flux совсем" или "буду править быстрее, чем он откатывает".
+**Красный флаг:** «отключу Flux совсем» или «буду править быстрее, чем он откатывает».
+
+</details>
 
 ### 3. [middle] В git закоммитили плохое значение, `HelmRelease` в `Ready=False`. Твои действия?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 Смотрю `flux get helmreleases`, `flux logs` и `kubectl describe`, определяю коммит. Восстанавливаю сервис через `git revert` плохого коммита, а не правкой поверх. Проверяю, что старые поды живы и релиз вернулся в `Ready`. Потом разбираю, почему проверка не поймала ошибку.
 
 **Что хотят услышать:** revert, а не force-push; rolling update сохраняет старые поды; `--reset` после исчерпания ретраев; ревью и CI на PR.
 
-**Красный флаг:** "зайду на кластер и починю руками" или `push --force` в `main`.
+**Красный флаг:** «зайду на кластер и починю руками» или `push --force` в `main`.
+
+</details>
 
 ### 4. [middle] На чистом кластере часть приложений падает с `no matches for kind`, но через десять минут всё само проходит. Почему?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 Ресурсы применялись раньше, чем контроллер установил свои CRD. Со временем ретраи сходятся. Правильно разделить на слои: контроллеры, конфиги, приложения и связать через `dependsOn` с `wait: true`.
 
 **Что хотят услышать:** CRD и порядок, `dependsOn` ждёт `Ready`, разделение `infrastructure` и `infrastructure-config`.
 
-**Красный флаг:** "поставлю `sleep` в скрипте" или "применю два раза".
+**Красный флаг:** «поставлю `sleep` в скрипте» или «применю два раза».
+
+</details>
 
 ### 5. [middle] Ты удалил файл из git, а ресурс в кластере остался. Почему и как правильно?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 Скорее всего, у `Kustomization` выключен `prune`. С `prune: true` Flux удаляет то, чего больше нет в git (по инвентарю ресурсов, который он ведёт сам). Надо включить `prune` и удалить осиротевший ресурс, понимая риск: удаление PVC или БД из git удалит данные.
 
 **Что хотят услышать:** prune и инвентарь, осторожность с данными (аннотация `kustomize.toolkit.fluxcd.io/prune: disabled` на важных ресурсах).
 
-**Красный флаг:** "удалю руками и забуду".
+**Красный флаг:** «удалю руками и забуду».
+
+</details>
 
 ### 6. [middle] Как хранить секреты при GitOps, если в git нельзя класть пароли?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 Использую внешнее хранилище: Vault и External Secrets Operator, в git лежит только `ExternalSecret` со ссылкой на путь. Второй вариант: шифрование файлов (SOPS с ключом age или KMS), Flux расшифровывает при применении. Значение секрета в открытом виде в git не хранится никогда.
 
 **Что хотят услышать:** ESO или SOPS, ротация без коммита (ESO), base64 не шифрование, доступ к ключу расшифровки только у Flux.
 
-**Красный флаг:** "закоммичу Secret в приватный репозиторий".
+**Красный флаг:** «закоммичу Secret в приватный репозиторий».
+
+</details>
 
 ### 7. [middle] Flux или Argo CD: что выберешь и почему?
 
+<details markdown="1">
+<summary>Ответ</summary>
+
 Зависит от команды. Argo CD даёт веб-UI, дерево ресурсов, `ApplicationSet` для многих кластеров и удобен, когда деплоем занимаются разные команды. Flux легче, набор контроллеров без своего UI, тесно работает с Helm и Kustomize, хорош для платформенных команд. Оба зрелые, лучше выбирать по потребности в панели и по опыту команды.
 
-**Что хотят услышать:** конкретные различия (UI, ApplicationSet, контроллеры), а не "Argo лучше".
+**Что хотят услышать:** конкретные различия (UI, ApplicationSet, контроллеры), а не «Argo лучше».
 
-**Красный флаг:** "не знаю, слышал только про один".
+**Красный флаг:** «не знаю, слышал только про один».
+
+</details>
 
 ### 8. [middle] Один репозиторий для кода и манифестов или два?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 Обычно два: `notes` (код, CI собирает образ) и `notes-gitops` (желаемое состояние). У них разные права, ритм изменений и история: коммиты с обновлением версии не засоряют историю кода, а доступ к манифестам можно ограничить. Для маленькой команды монорепо допустимо, но тогда путь в `Kustomization` и триггеры CI нужно настроить так, чтобы изменения манифестов не пересобирали образ.
 
 **Что хотят услышать:** разделение ответственности, окружения через каталоги или ветки, компромисс для маленькой команды.
 
-**Красный флаг:** "потому что так принято".
+**Красный флаг:** «потому что так принято».
+
+</details>
 
 ### 9. [middle] `HelmRelease` завис в `Reconciling`, потом стал `install retries exhausted`. Как диагностируешь?
+
+<details markdown="1">
+<summary>Ответ</summary>
 
 Смотрю `flux logs --kind=HelmRelease`, затем `helm history` и события неймспейса. Проверяю, скачался ли чарт (`HelmRepository`, доступ к OCI), отрендерился ли (values), стартовали ли поды (образ, пробы, ресурсы). После правки в git делаю `flux reconcile helmrelease --reset`, потому что после исчерпания ретраев Flux сам не пробует заново.
 
 **Что хотят услышать:** цепочка источник, рендер, поды, `--reset`, разница между ошибкой Flux и ошибкой приложения.
 
-**Красный флаг:** "удалю `HelmRelease` и создам заново" без диагностики.
+**Красный флаг:** «удалю `HelmRelease` и создам заново» без диагностики.
+
+</details>
 
 ### 10. [middle] Как GitOps помогает восстановить кластер после катастрофы, и чего он не восстановит?
 
-Новый кластер, `flux bootstrap` на тот же репозиторий, и всё описанное в git разворачивается само. Не восстановится состояние: содержимое БД и PVC, данные и ключи Vault, секреты, созданные вручную. Для них нужны отдельные бэкапы и restore drill.
+<details markdown="1">
+<summary>Ответ</summary>
+
+Новый кластер, `flux bootstrap` на тот же репозиторий, и всё описанное в git разворачивается само. Не восстановится состояние: содержимое БД и PVC, данные и ключи Vault, секреты, созданные вручную. Для них нужны отдельные бэкапы и проверка восстановления.
 
 **Что хотят услышать:** конфигурация против состояния, бэкапы данных, unseal-ключи Vault хранятся отдельно, проверенное восстановление.
 
-**Красный флаг:** "у нас всё в git, значит, бэкапы не нужны".
+**Красный флаг:** «у нас всё в git, значит, бэкапы не нужны».
+
+</details>
 
 ## Проверено на версиях
 
-- Flux: v2.9.5, Argo CD: v3.5.3 (только необязательный раздел)
-- Envoy Gateway: v1.9.2
-- External Secrets Operator: v2.11.0
-- Vault: v2.1.1, чарт HashiCorp: версия не закреплена, проверь актуальную версию на странице проекта
-- Helm: v4.3.0
-- kind: v0.33.0
-- Чарт `notes`: 0.4.0, appVersion 0.7.0
+- Flux v2.9.5, Argo CD v3.5.3 (только необязательный раздел), Envoy Gateway v1.9.2, External Secrets Operator v2.11.0, Vault v2.1.1, Helm v4.3.0, kind v0.33.0, чарт `notes` 0.4.0 (appVersion 0.7.0): версии из курса, кластер и Flux в этой редакции не запускались, вывод команд сверен по документации и предыдущей редакции.
+- Версия чарта Vault (`0.32.0`) не закреплена и не проверялась: проверь актуальную на странице проекта.
+- Манифесты Flux и `break.sh`: не прогонялись, `break.sh` проверен `shellcheck` и чтением.
 
 ## Итог урока: ты умеешь
 
-- [ ] умею объяснить разницу push и pull и правила GitOps
+- [ ] умею объяснить разницу push и pull, декларативного и императивного подхода и правила GitOps
+- [ ] умею назвать контроллеры Flux и цепочку GitRepository, Kustomization, HelmRelease
 - [ ] умею установить flux CLI со сверкой SHA256 и выполнить `flux bootstrap github`
 - [ ] умею разложить репозиторий на `clusters`, `infrastructure`, `apps` и связать слои через `dependsOn`
 - [ ] умею описать приложение как `HelmRelease` из OCI-чарта и менять его через git
