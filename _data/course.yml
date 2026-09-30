@@ -5,6 +5,8 @@ topics:
     title: "Linux, Bash и systemd"
     subtitle: "Сервер, права, процессы, скрипты: запускаем «Заметки» как сервис"
     time: "16.5 ч"
+    layer: "Linux · systemd"
+    project: "Запускаем на сервере и оформляем systemd-сервисом"
     lessons:
       - id: "1.1"
         slug: 01-first-server-shell
@@ -43,6 +45,8 @@ topics:
     title: "Сеть, HTTP, DNS, nginx и TLS"
     subtitle: "Как запрос доходит до сервиса и как его безопасно опубликовать"
     time: "16 ч"
+    layer: "nginx · HTTPS · DNS"
+    project: "Ставим перед сервисом nginx, включаем HTTPS, разбираем путь запроса"
     lessons:
       - id: "2.1"
         slug: 01-addresses-routes
@@ -81,6 +85,8 @@ topics:
     title: "Git и CI"
     subtitle: "История, командная работа и автоматические проверки"
     time: "11.5 ч"
+    layer: "Git · CI"
+    project: "Кладём в git, настраиваем CI в GitHub Actions, GitLab CI и Jenkins"
     lessons:
       - id: "3.1"
         slug: 01-git-basics
@@ -111,6 +117,8 @@ topics:
     title: "Docker и Compose"
     subtitle: "Упаковываем «Заметки» вместе с PostgreSQL и nginx в контейнеры"
     time: "17.5 ч"
+    layer: "Docker · Compose"
+    project: "Упаковываем в образ, поднимаем с PostgreSQL и nginx в Compose"
     lessons:
       - id: "4.1"
         slug: 01-containers-idea
@@ -153,6 +161,8 @@ topics:
     title: "Kubernetes и Helm"
     subtitle: "Запускаем «Заметки» в кластере и обновляем без простоя"
     time: "25.5 ч"
+    layer: "Kubernetes · Helm"
+    project: "Запускаем в Kubernetes, обновляем без простоя, упаковываем в Helm"
     lessons:
       - id: "5.1"
         slug: 01-why-k8s-cluster
@@ -211,6 +221,8 @@ topics:
     title: "Облако"
     subtitle: "«Заметки» на ВМ в Yandex Cloud: сеть, диски, домен, Managed-сервисы"
     time: "9 ч"
+    layer: "Yandex Cloud"
+    project: "Выносим на ВМ в Yandex Cloud, подключаем Managed PostgreSQL"
     lessons:
       - id: "6.1"
         slug: 01-cloud-models-aws-mapping
@@ -237,6 +249,8 @@ topics:
     title: "IaC: Terraform и Ansible"
     subtitle: "Инфраструктура и настройка серверов описаны кодом"
     time: "13.5 ч"
+    layer: "Terraform · Ansible"
+    project: "Описываем инфраструктуру в Terraform, настройку серверов в Ansible"
     lessons:
       - id: "7.1"
         slug: 01-iac-terraform-basics
@@ -271,6 +285,8 @@ topics:
     title: "Наблюдаемость"
     subtitle: "Метрики, алерты, логи, трейсы, service mesh и цели надёжности"
     time: "21.5 ч"
+    layer: "Метрики · логи · алерты"
+    project: "Метрики, алерты, логи, трейсы, Istio и SLO с burn rate"
     lessons:
       - id: "8.1"
         slug: 01-observability-slo
@@ -321,6 +337,8 @@ topics:
     title: "Секреты и GitOps"
     subtitle: "Vault, Flux, сертификаты, операторы и безопасные релизы"
     time: "14.5 ч"
+    layer: "Vault · Flux · canary"
+    project: "Секреты в Vault, деплой через Flux, cert-manager, CloudNativePG, canary"
     lessons:
       - id: "9.1"
         slug: 01-secrets-problem-vault
@@ -355,6 +373,8 @@ topics:
     title: "Итоговый практикум"
     subtitle: "Дежурство, разбор инцидентов, восстановление и подготовка к собеседованию"
     time: "19 ч"
+    layer: "Дежурство · постмортем"
+    project: "Дежурство, постмортем, восстановление из бэкапа, пробное собеседование"
     lessons:
       - id: "10.1"
         slug: 01-oncall-drill

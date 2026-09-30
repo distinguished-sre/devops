@@ -11,7 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `_data/course.yml`: **единственный источник порядка курса**. 10 тем, 82 урока: `topics[].{n, dir, title, subtitle, time, lessons[].{id, slug, title, time}}`. Боковое меню, карта на главной, список уроков темы и кнопки «назад/дальше» (`_includes/nav-seq.html`) строятся из него. Новый урок без записи в course.yml на сайте недостижим.
 - `<NN-тема>/index.md`: страница темы (`layout: topic`), в `redirect_from` старый URL темы.
 - `<NN-тема>/<NN-slug>.md`: урок. Front matter: `layout: lesson`, `title`, `topic` (число), `lesson` ("5.3"), `time`. prev/next не пишем, они вычисляются.
-- `README.md`: главная (`layout: home`, `permalink: /`), карту курса рисует layout.
+- `README.md`: главная (`layout: home`, `permalink: /`), но его текст виден только на GitHub. Сайтовую главную целиком рисует `_layouts/home.html` из course.yml (у тем поля `layer` и `project` для блока «Сквозной проект»); анимации в `assets/css/home.css` и `assets/js/home.js`, `default.html` подключает их только на главной. Меняешь описание тем или цифры курса: правь и README, и course.yml.
 - `tasks/monitoring.md`, `tasks/sre.md`: большие ТЗ после курса; `resources.md`: внешние материалы. У всех `redirect_from` со старых кириллических URL.
 - Ссылки только относительные на `.md` (jekyll-relative-links превращает их в `.html`): в своей теме `03-dns.md`, в чужой `../05-kubernetes/03-services-dns.md`. Абсолютные `/01-linux/...` ломаются из-за baseurl.
 

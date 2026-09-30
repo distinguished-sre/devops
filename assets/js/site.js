@@ -117,7 +117,7 @@
       if (e.key === 'Enter') {
         var first = $$('.nav-lesson', nav).filter(function (a) { return !a.parentNode.hidden && !a.closest('[hidden]'); })[0];
         if (first) location.href = first.href;
-      } else if (e.key === 'Escape') { q.value = ''; filter(); q.blur(); }
+      } else if (e.key === 'Escape') { if (!q.value) setNav(false); q.value = ''; filter(); q.blur(); }
     });
   }
 
@@ -283,7 +283,7 @@
     var t = e.target, typing = t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable);
     if (typing) return;
     if (e.key === '/') {
-      if (q) { e.preventDefault(); if (doc.body.classList.contains('nav-open') === false && window.innerWidth <= 900) setNav(true); q.focus(); }
+      if (q) { e.preventDefault(); if (doc.body.classList.contains('nav-open') === false && (window.innerWidth <= 900 || doc.body.classList.contains('layout-home'))) setNav(true); q.focus(); }
     } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       var a = $('a[data-nav="' + (e.key === 'ArrowLeft' ? 'prev' : 'next') + '"]');
       if (a) location.href = a.href;

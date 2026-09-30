@@ -1,35 +1,272 @@
 ---
 layout: default
 ---
+{%- comment -%}
+  Главная сайта. Текст главной живёт здесь и в _data/course.yml (layer, project),
+  README.md показывается только на GitHub. Анимации в assets/js/home.js,
+  стили в assets/css/home.css: оба подключаются только на этой странице.
+{%- endcomment -%}
 {%- assign total = 0 -%}
-{%- for t in site.data.course.topics -%}{%- assign total = total | plus: t.lessons.size -%}{%- endfor -%}
-<section class="welcome" aria-label="Приветствие">
-  <span class="welcome-title">✻ Курс DevOps</span>
-  <div class="welcome-body">
-    <div class="welcome-big" aria-hidden="true">✻</div>
-    <div>
-      <h1 class="welcome-h">Добро пожаловать на курс DevOps</h1>
-      <p class="dim">{{ site.data.course.topics.size }} блоков · {{ total }} уроков · один сквозной проект от systemd до GitOps</p>
-      <p class="cwd"><span class="dim">cwd:</span> ~/devops-course</p>
-      <p class="hintline"><span class="acc">✻</span> Нажми <kbd>/</kbd>, чтобы найти урок, <kbd>←</kbd> <kbd>→</kbd> для перехода между уроками.</p>
-      <p><a class="btn primary" href="#map">Открыть карту курса</a> <span class="chip" data-overall hidden></span></p>
+{%- assign hours = 0 -%}
+{%- for t in site.data.course.topics -%}
+  {%- assign total = total | plus: t.lessons.size -%}
+  {%- assign h = t.time | remove: ' ч' | plus: 0 -%}
+  {%- assign hours = hours | plus: h -%}
+{%- endfor -%}
+{%- assign hours_round = hours | round -%}
+{%- assign first_topic = site.data.course.topics | first -%}
+{%- assign first_lesson = first_topic.lessons | first -%}
+{%- capture first_url %}/{{ first_topic.dir }}/{{ first_lesson.slug }}.html{% endcapture -%}
+<script>
+  /* Прячем блоки до появления на экране, только если JS работает и анимации не отключены. */
+  (function () {
+    var d = document.documentElement;
+    if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    d.classList.add('home-anim');
+    setTimeout(function () { if (!window.__homeReady) d.classList.remove('home-anim'); }, 2500);
+  })();
+</script>
+<div class="home" data-hours="{{ hours }}">
+
+  <!-- ============ Первый экран ============ -->
+  <section class="hero" aria-labelledby="hero-h">
+    <div class="hero-glow" aria-hidden="true"></div>
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow in" style="--i:0"><span class="spark" aria-hidden="true">✻</span> Бесплатный курс для тех, кто начинает с нуля</p>
+        <h1 id="hero-h" class="display in" style="--i:1">Научись запускать сервисы, <em>которые не&nbsp;падают</em></h1>
+        <p class="hero-lead in" style="--i:2">Курс DevOps на русском для человека, который не работал в IT. Ты сам поднимешь сервер, упакуешь приложение в контейнер, запустишь его в Kubernetes, настроишь мониторинг и научишься находить причину поломки. Каждое новое слово объясняется там, где встретилось.</p>
+        <div class="hero-cta in" style="--i:3">
+          <a class="hbtn hbtn-primary" href="{{ first_url | relative_url }}" data-continue>
+            <span data-continue-text>Начать с урока {{ first_lesson.id }}</span> <span class="arr" aria-hidden="true">→</span>
+          </a>
+          <a class="hbtn hbtn-ghost" href="#map">Карта курса</a>
+        </div>
+        <p class="hero-progress in" style="--i:4" data-home-progress hidden></p>
+        <dl class="stats in" style="--i:4">
+          <div><dt>тем</dt><dd data-count="{{ site.data.course.topics.size }}">{{ site.data.course.topics.size }}</dd></div>
+          <div><dt>уроков</dt><dd data-count="{{ total }}">{{ total }}</dd></div>
+          <div><dt>часов</dt><dd>≈<span data-count="{{ hours_round }}">{{ hours_round }}</span></dd></div>
+          <div><dt>сквозной проект</dt><dd data-count="1">1</dd></div>
+        </dl>
+      </div>
+
+      <div class="hero-visual in" style="--i:2" aria-hidden="true">
+        <div class="big-spark">✻</div>
+        <div class="term">
+          <div class="term-bar"><i></i><i></i><i></i><span>~/notes</span><span class="term-topic" data-term-topic>тема 1</span></div>
+          <pre class="term-body" data-term="hero"></pre>
+        </div>
+        <div class="float-chip fc-1">✓ CI прошёл</div>
+        <div class="float-chip fc-2">● 3/3 Running</div>
+        <div class="float-chip fc-3">SLO 99.9%</div>
+      </div>
     </div>
-  </div>
-</section>
-<section id="map" class="course-map" data-total="{{ total }}" aria-label="Карта курса">
-  <h2 class="map-h">Карта курса</h2>
-  <ol class="cards topics-grid">
-    {%- for t in site.data.course.topics -%}
-      <li><a class="card topic-card" data-topic="{{ t.n }}" data-of="{{ t.lessons.size }}" href="{{ '/' | append: t.dir | append: '/' | relative_url }}">
-        <span class="card-id">{{ t.n }}</span>
-        <span class="card-t">{{ t.title | escape }}</span>
-        <span class="card-s">{{ t.subtitle | escape }}</span>
-        <span class="card-m"><span>{{ t.lessons.size }} уроков · {{ t.time }}</span><span data-count-for="{{ t.n }}">0/{{ t.lessons.size }}</span></span>
-        <span class="bar" aria-hidden="true"><i></i></span>
-      </a></li>
-    {%- endfor -%}
-  </ol>
-</section>
-<div class="prose home-prose" data-prose>
-{{ content }}
+    <a class="scroll-hint" href="#what" aria-label="Листать дальше"><span></span></a>
+  </section>
+
+  <!-- ============ Что такое DevOps ============ -->
+  <section id="what" class="band" aria-labelledby="what-h">
+    <div class="wrap">
+      <p class="kick reveal">Сначала о главном</p>
+      <h2 id="what-h" class="h2 reveal">Что такое DevOps, если по-простому</h2>
+      <p class="lead2 reveal">Программисты пишут код. Но чтобы им пользовались люди, код нужно где-то запустить, обновлять без перерывов, следить, что он жив, и быстро чинить, когда что-то сломалось. Этим занимается DevOps-инженер: строит дорогу, по которой код доезжает до пользователей, и следит, чтобы на ней не было аварий.</p>
+
+      <div class="pipe reveal" data-pipe>
+        <div class="pipe-track" aria-hidden="true"><i class="pipe-fill"></i><b class="pipe-dot"></b></div>
+        <ol class="pipe-nodes">
+          <li class="pnode">
+            <span class="pic"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg></span>
+            <b>Код</b><span>Программа, которую написали разработчики</span><em>app.py</em>
+          </li>
+          <li class="pnode">
+            <span class="pic"><svg viewBox="0 0 24 24"><circle cx="6" cy="5" r="2.2"/><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="8" r="2.2"/><path d="M6 7.2v9.6M18 10.2c0 4-6 3-11 7"/></svg></span>
+            <b>Git</b><span>Хранит каждую версию кода и кто что поменял</span><em>тема 3</em>
+          </li>
+          <li class="pnode">
+            <span class="pic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 12.5l3 3 6-6.5"/></svg></span>
+            <b>CI</b><span>Робот сам проверяет каждое изменение</span><em>тема 3</em>
+          </li>
+          <li class="pnode">
+            <span class="pic"><svg viewBox="0 0 24 24"><path d="M12 2.8l8.5 4.6v9.2L12 21.2l-8.5-4.6V7.4z"/><path d="M3.5 7.4L12 12l8.5-4.6M12 12v9.2"/></svg></span>
+            <b>Контейнер</b><span>Коробка, где приложение со всем нужным ему</span><em>тема 4</em>
+          </li>
+          <li class="pnode">
+            <span class="pic"><svg viewBox="0 0 24 24"><path d="M12 2.5l8.2 4.7v9.6L12 21.5l-8.2-4.7V7.2z"/><circle cx="12" cy="12" r="3"/><path d="M12 5.5V9M12 15v3.5M6.4 8.7l3 1.7M14.6 13.6l3 1.7M6.4 15.3l3-1.7M14.6 10.4l3-1.7"/></svg></span>
+            <b>Кластер</b><span>Kubernetes запускает коробки и поднимает упавшие</span><em>тема 5</em>
+          </li>
+          <li class="pnode">
+            <span class="pic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.6 2.7-6 6-6s6 2.4 6 6"/><circle cx="17" cy="9" r="2.4"/><path d="M16 14.2c3 .2 5 2.4 5 5.8"/></svg></span>
+            <b>Пользователи</b><span>Открывают сайт и не знают, как сложно внутри</span><em>тема 2</em>
+          </li>
+        </ol>
+        <div class="pipe-loop">
+          <span class="pulse-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12h4l2.5-6 4 12 3-8 1.5 2H22"/></svg></span>
+          <p><b>А над всем этим мониторинг.</b> Графики и оповещения сообщают о проблеме раньше, чем пожалуются пользователи. Это тема 8, а темы 7 и 9 учат описывать всю дорогу кодом, чтобы её можно было пересобрать за минуты.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Сквозной проект ============ -->
+  <section class="band band-alt" aria-labelledby="proj-h">
+    <div class="wrap">
+      <p class="kick reveal">Сквозной проект</p>
+      <h2 id="proj-h" class="h2 reveal">Один сервис растёт через весь курс</h2>
+      <p class="lead2 reveal">«Заметки» - маленькое веб-приложение на Python: хранит заметки и отвечает на запросы по сети. В первой теме это один файл на сервере. С каждой темой вокруг него появляется новый слой, и к концу у тебя всё, что есть у настоящего сервиса в компании. Листай и смотри, как собирается стек.</p>
+
+      <div class="story">
+        <div class="stack-wrap" aria-hidden="true">
+          <div class="stack" data-stack>
+            {%- for t in site.data.course.topics %}
+            <div class="layer" data-layer="{{ t.n }}" style="--n:{{ t.n }}"><span class="ln">{{ t.n }}</span><span class="lt">{{ t.layer }}</span></div>
+            {%- endfor %}
+            <div class="stack-app"><span class="spark">✻</span> app.py</div>
+          </div>
+          <p class="stack-cap"><span data-stack-count>1</span>/{{ site.data.course.topics.size }} · <span data-stack-label>{{ first_topic.layer }}</span></p>
+        </div>
+        <ol class="steps">
+          {%- for t in site.data.course.topics %}
+          <li class="step" data-step="{{ t.n }}">
+            <span class="step-n">Тема {{ t.n }}</span>
+            <h3>{{ t.title | escape }}</h3>
+            <p>{{ t.project | escape }}.</p>
+            <a href="{{ '/' | append: t.dir | append: '/' | relative_url }}">Открыть тему <span aria-hidden="true">→</span></a>
+          </li>
+          {%- endfor %}
+        </ol>
+      </div>
+      <p class="after-note reveal">К концу курса у тебя будет репозиторий <code>notes</code>, который не стыдно показать на собеседовании: код, CI, Helm-чарт, Terraform, Ansible, дашборды, алерты и runbook (инструкция дежурному, что делать при поломке).</p>
+    </div>
+  </section>
+
+  <!-- ============ Карта курса ============ -->
+  <section id="map" class="band course-map" data-total="{{ total }}" aria-labelledby="map-h">
+    <div class="wrap">
+      <p class="kick reveal">{{ site.data.course.topics.size }} тем · {{ total }} уроков</p>
+      <h2 id="map-h" class="h2 reveal">Карта курса</h2>
+      <p class="lead2 reveal">Темы идут от простого к сложному, и каждая опирается только на пройденное. Полоска ниже показывает, сколько времени займёт каждая: наведи на отрезок, чтобы найти тему.</p>
+
+      <div class="timebar reveal" role="img" aria-label="Распределение {{ hours_round }} часов по темам">
+        {%- for t in site.data.course.topics %}
+        <span class="seg" data-seg="{{ t.n }}" style="flex-grow: {{ t.time | remove: ' ч' }}; --n:{{ t.n }}; --pct:{{ t.n | minus: 1 | times: 11.1 }}%" title="Тема {{ t.n }}: {{ t.title | escape }}, {{ t.time }}"><b>{{ t.n }}</b><i>{{ t.time }}</i></span>
+        {%- endfor %}
+      </div>
+
+      <ol class="tgrid">
+        {%- for t in site.data.course.topics -%}
+        <li class="reveal" style="--d:{{ forloop.index0 | modulo: 3 }}">
+          <a class="tcard topic-card" data-topic="{{ t.n }}" data-of="{{ t.lessons.size }}" href="{{ '/' | append: t.dir | append: '/' | relative_url }}">
+            <span class="tcard-top"><span class="tnum">{{ t.n | prepend: '0' | slice: -2, 2 }}</span><span class="tmeta">{{ t.lessons.size }} уроков · {{ t.time }}</span></span>
+            <span class="tt">{{ t.title | escape }}</span>
+            <span class="ts">{{ t.subtitle | escape }}</span>
+            <span class="dots" aria-hidden="true">{%- for l in t.lessons -%}<i data-dot="{{ l.id }}"></i>{%- endfor -%}</span>
+            <span class="tfoot"><span data-count-for="{{ t.n }}">0/{{ t.lessons.size }}</span><span class="go" aria-hidden="true">→</span></span>
+            <span class="bar" aria-hidden="true"><i></i></span>
+          </a>
+        </li>
+        {%- endfor -%}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============ Как устроен урок ============ -->
+  <section class="band band-alt" aria-labelledby="lesson-h">
+    <div class="wrap">
+      <p class="kick reveal">Внутри урока</p>
+      <h2 id="lesson-h" class="h2 reveal">Каждый урок устроен одинаково</h2>
+      <p class="lead2 reveal">Сначала зачем, потом как устроено, потом руками. Около половины урока занимает теория простым языком: с аналогиями, схемами и разобранными примерами.</p>
+
+      <div class="anatomy reveal" data-anatomy>
+        <div class="apart" style="--w:1"><b>Зачем</b><span>какую рабочую задачу решает тема</span></div>
+        <div class="apart" style="--w:1.2"><b>Картина целиком</b><span>схема, как всё связано</span></div>
+        <div class="apart apart-main" style="--w:4.6"><b>Теория</b><span>около половины урока: каждое понятие с примером из жизни и разбором</span></div>
+        <div class="apart" style="--w:2.2"><b>Практика</b><span>команды и что должно получиться</span></div>
+        <div class="apart apart-break" style="--w:1.2"><b>Сломай и почини</b><span>поиск причины</span></div>
+        <div class="apart" style="--w:1.4"><b>Вопросы</b><span>как на собеседовании</span></div>
+      </div>
+
+      <div class="rules">
+        <div class="rule-list">
+          <div class="rule reveal" style="--d:0">
+            <span class="rn">01</span>
+            <div><h3>Иди по порядку</h3><p>Уроки выстроены цепочкой, каждый опирается только на пройденное. Кнопки «назад» и «дальше» внизу урока ведут без пропусков, клавиши <kbd>←</kbd> <kbd>→</kbd> тоже.</p></div>
+          </div>
+          <div class="rule reveal" style="--d:1">
+            <span class="rn">02</span>
+            <div><h3>Делай практику руками</h3><p>В каждом уроке команды и вывод, который должен получиться. Не совпало: это повод разобраться, а не пропустить.</p></div>
+          </div>
+          <div class="rule reveal" style="--d:2">
+            <span class="rn">03</span>
+            <div><h3>Ломай специально</h3><p>Задание «сломай и почини» учит главному навыку инженера: находить причину, а не бороться с симптомом. Пример справа.</p></div>
+          </div>
+          <div class="rule reveal" style="--d:3">
+            <span class="rn">04</span>
+            <div><h3>Проверяй себя вопросами</h3><p>В конце урока реальные вопросы с собеседований уровня junior и middle: что хотят услышать и какой ответ насторожит.</p></div>
+          </div>
+        </div>
+        <div class="term term-break reveal" aria-hidden="true">
+          <div class="term-bar"><i></i><i></i><i></i><span>сломай и почини</span><span class="term-state" data-break-state>работает</span></div>
+          <pre class="term-body" data-term="break"></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Время и подготовка ============ -->
+  <section class="band" aria-labelledby="time-h">
+    <div class="wrap two">
+      <div>
+        <p class="kick reveal">Темп</p>
+        <h2 id="time-h" class="h2 reveal">Сколько это займёт</h2>
+        <p class="lead2 reveal">Весь курс около {{ hours_round }} часов. Выбери свой темп и посмотри, когда закончишь.</p>
+        <div class="calc reveal" data-calc>
+          <label><span>Часов в день <output data-out="h">2</output></span>
+            <input type="range" min="0.5" max="6" step="0.5" value="2" data-in="h"></label>
+          <label><span>Дней в неделю <output data-out="d">5</output></span>
+            <input type="range" min="1" max="7" step="1" value="5" data-in="d"></label>
+          <div class="calc-res">
+            <span class="calc-big" data-res-weeks>17</span>
+            <span class="calc-unit" data-res-unit>недель</span>
+            <p class="calc-date" data-res-date>&nbsp;</p>
+          </div>
+        </div>
+      </div>
+      <div>
+        <p class="kick reveal">Что понадобится</p>
+        <h2 class="h2 reveal">Подготовка</h2>
+        <ul class="needs">
+          <li class="reveal" style="--d:0"><span class="nic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/></svg></span><div><b>Компьютер с 16 ГБ памяти</b><span>С 8 ГБ тоже пройдёшь: в уроках есть советы, как облегчить стенд.</span></div></li>
+          <li class="reveal" style="--d:1"><span class="nic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8l4 4-4 4M12 17h7"/></svg></span><div><b>Ubuntu, Windows или macOS</b><span>Ubuntu 24.04, Windows с WSL2 (Linux внутри Windows) или macOS с Docker Desktop или Colima.</span></div></li>
+          <li class="reveal" style="--d:2"><span class="nic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="2"/><circle cx="6" cy="18" r="2"/><circle cx="18" cy="8" r="2"/><path d="M6 8v8M18 10c0 4-6 3-11.5 6.5"/></svg></span><div><b>Аккаунт на GitHub</b><span>Туда ты положишь свой проект, там же будет работать CI.</span></div></li>
+          <li class="reveal" style="--d:3"><span class="nic"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18a4.5 4.5 0 0 1-.6-8.96A6 6 0 0 1 17.7 8.5 4.75 4.75 0 0 1 17 18z"/></svg></span><div><b>Yandex Cloud для тем 6, 7 и 10</b><span>Хватит пробного гранта. Для AWS в уроках есть таблица соответствия сервисов.</span></div></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ После курса ============ -->
+  <section class="band band-alt" aria-labelledby="after-h">
+    <div class="wrap">
+      <p class="kick reveal">После курса</p>
+      <h2 id="after-h" class="h2 reveal">Проверь себя в условиях, близких к рабочим</h2>
+      <div class="after">
+        <a class="acard reveal" style="--d:0" href="{{ '/tasks/monitoring.html' | relative_url }}"><span class="ak">ТЗ 1</span><b>Инженер мониторинга</b><span>12–16 часов в одиночку: развернуть мониторинг, настроить осмысленные алерты, разобрать инцидент и написать документацию.</span><em>Открыть →</em></a>
+        <a class="acard reveal" style="--d:1" href="{{ '/tasks/sre.html' | relative_url }}"><span class="ak">ТЗ 2</span><b>SRE</b><span>Четыре рабочих дня: мониторинг, логи, Kubernetes, CI/CD, базы, инциденты и планирование мощностей.</span><em>Открыть →</em></a>
+        <a class="acard reveal" style="--d:2" href="{{ '/resources.html' | relative_url }}"><span class="ak">Ещё</span><b>Дополнительные материалы</b><span>Дорожная карта, внешние курсы и подборки.</span><em>Открыть →</em></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ Финал ============ -->
+  <section class="final" aria-labelledby="final-h">
+    <div class="final-glow" aria-hidden="true"></div>
+    <div class="wrap">
+      <div class="final-spark reveal" aria-hidden="true">✻</div>
+      <h2 id="final-h" class="display reveal">Первый урок займёт пару часов</h2>
+      <p class="lead2 reveal">Получишь машину с Linux, освоишься в терминале и запустишь первую версию «Заметок». Дальше каждый урок добавляет по шагу.</p>
+      <p class="reveal"><a class="hbtn hbtn-primary" href="{{ first_url | relative_url }}" data-continue><span data-continue-text>Начать с урока {{ first_lesson.id }}</span> <span class="arr" aria-hidden="true">→</span></a></p>
+      <p class="keys reveal"><kbd>/</kbd> поиск урока · <kbd>←</kbd> <kbd>→</kbd> между уроками</p>
+    </div>
+  </section>
 </div>
