@@ -39,6 +39,7 @@ exclude:
   - CLAUDE.md
   - project/
   - _samples/
+  - tools/
   - "*.sh"
   - Makefile
   - Gemfile

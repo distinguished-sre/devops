@@ -212,11 +212,11 @@
 
   /* ---------- метки [junior]/[middle] на карточки ---------- */
   $$('[data-prose] h3').forEach(function (h) {
-    var m = /^\s*\[(junior|middle|senior)\]\s*/i.exec(h.textContent);
+    var m = /^\s*(?:\d+\.\s*)?\[(junior|middle|senior)\]\s*/i.exec(h.textContent);
     if (!m) return;
     var lvl = m[1].toLowerCase(), tag = el('span', 'tag tag-' + lvl, lvl);
     var first = h.firstChild;
-    if (first && first.nodeType === 3) first.nodeValue = first.nodeValue.replace(/^\s*\[(junior|middle|senior)\]\s*/i, '');
+    if (first && first.nodeType === 3) first.nodeValue = first.nodeValue.replace(/\[(junior|middle|senior)\]\s*/i, '');
     h.insertBefore(tag, h.firstChild);
     var card = el('div', 'qcard'), sib = h.nextElementSibling;
     h.parentNode.insertBefore(card, h); card.appendChild(h);
